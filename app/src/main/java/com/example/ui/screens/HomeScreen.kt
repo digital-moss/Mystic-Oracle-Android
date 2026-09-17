@@ -9,6 +9,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.Book
 import androidx.compose.material.icons.filled.Psychology
+import androidx.compose.material.icons.filled.Style
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -19,16 +20,19 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.model.RuneData
 import com.example.model.IChingData
+import com.example.model.TarotData
 import kotlin.random.Random
 
 @Composable
 fun HomeScreen(
     onNavigateToRunes: () -> Unit,
     onNavigateToIChing: () -> Unit,
+    onNavigateToTarot: () -> Unit,
     onNavigateToHistory: () -> Unit
 ) {
     val dailyRune = remember { RuneData.runes.random(Random(System.currentTimeMillis() / 86400000)) }
     val dailyHexagram = remember { IChingData.hexagrams.random(Random(System.currentTimeMillis() / 86400000)) }
+    val dailyTarot = remember { TarotData.cards.random(Random(System.currentTimeMillis() / 86400000)) }
 
     LazyColumn(
         modifier = Modifier
@@ -62,7 +66,7 @@ fun HomeScreen(
                         )
                     }
                     Text(
-                        text = "Consult the ancient Norse Runes and the Chinese I Ching for timeless wisdom and guidance on your journey.",
+                        text = "Consult Norse Runes, the Chinese I Ching, and Tarot for timeless wisdom and guidance on your journey.",
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.8f)
                     )
@@ -171,17 +175,63 @@ fun HomeScreen(
         }
 
         item {
+            // Daily Tarot Card
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable { onNavigateToTarot() },
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                shape = RoundedCornerShape(16.dp)
+            ) {
+                Row(
+                    modifier = Modifier.padding(16.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(64.dp)
+                            .clip(RoundedCornerShape(12.dp))
+                            .background(MaterialTheme.colorScheme.tertiary.copy(alpha = 0.15f)),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Style,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.tertiary,
+                            modifier = Modifier.size(32.dp)
+                        )
+                    }
+                    Spacer(modifier = Modifier.width(16.dp))
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = "Daily Tarot: ${dailyTarot.name}",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold
+                        )
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Text(
+                            text = dailyTarot.uprightMeaning,
+                            style = MaterialTheme.typography.bodySmall,
+                            maxLines = 2,
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+                        )
+                    }
+                }
+            }
+        }
+
+        item {
             Spacer(modifier = Modifier.height(8.dp))
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(12.dp)
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 Button(
                     onClick = { onNavigateToRunes() },
                     modifier = Modifier.weight(1f),
                     shape = RoundedCornerShape(12.dp)
                 ) {
-                    Text("Explore Runes")
+                    Text("Runes")
                 }
                 Button(
                     onClick = { onNavigateToIChing() },
@@ -189,7 +239,15 @@ fun HomeScreen(
                     shape = RoundedCornerShape(12.dp),
                     colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.secondary)
                 ) {
-                    Text("Consult I Ching")
+                    Text("I Ching")
+                }
+                Button(
+                    onClick = { onNavigateToTarot() },
+                    modifier = Modifier.weight(1f),
+                    shape = RoundedCornerShape(12.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.tertiary)
+                ) {
+                    Text("Tarot")
                 }
             }
         }

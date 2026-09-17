@@ -1,5 +1,8 @@
 package com.example.ui.screens
 
+import android.net.Uri
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -7,28 +10,84 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.BookmarkAdd
+import androidx.compose.material.icons.filled.FolderZip
+import androidx.compose.material.icons.filled.Image
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.data.ReadingEntity
 import com.example.model.TarotCard
 import com.example.model.TarotData
+import java.io.File
+import java.io.FileOutputStream
+import java.util.zip.ZipInputStream
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TarotScreen(
     onSaveReading: (ReadingEntity) -> Unit
 ) {
-    var selectedTab by remember { mutableStateOf(0) } // 0 = Cast, 1 = Library
+    val context = LocalContext.current
+    var selectedTab by remember { mutableStateOf(0) } // 0 = Cast, 1 = Library, 2 = Custom Decks
     var searchQuery by remember { mutableStateOf("") }
     var activeSpread by remember { mutableStateOf<List<Pair<TarotCard, Boolean>>?>(null) }
     var spreadType by remember { mutableStateOf("Single Tarot Card Draw") }
+
+    // Custom decks state
+    var importedDecksCount by remember { mutableStateOf(0) }
+    var importStatusMessage by remember { mutableStateOf<String?>(null) }
+
+    // Zip picker launcher (zero permission required)
+    val zipPickerLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.OpenDocument()
+    ) { uri: Uri? ->
+        uri?.let {
+            try {
+                val inputStream = context.contentResolver.openInputStream(uri)
+                val zipInputStream = ZipInputStream(inputStream)
+                val decksDir = File(context.filesDir, "custom_decks")
+                if (!decksDir.exists()) decksDir.mkdirs()
+
+                val deckFolder = File(decksDir, "deck_${System.currentTimeMillis()}")
+                deckFolder.mkdirs()
+
+                var count = 0
+                var zipEntry = zipInputStream.nextEntry
+                while (zipEntry != null) {
+                    if (!zipEntry.isDirectory && (zipEntry.name.endsWith(".png", true) || zipEntry.name.endsWith(".jpg", true))) {
+                        val outFile = File(deckFolder, zipEntry.name.substringAfterLast('/'))
+                        FileOutputStream(outFile).use { fos ->
+                            zipInputStream.copyTo(fos)
+                        }
+                        count++
+                    }
+                    zipInputStream.closeEntry()
+                    zipEntry = zipInputStream.nextEntry
+                }
+                zipInputStream.close()
+                importedDecksCount++
+                importStatusMessage = "Successfully imported custom deck with $count card images!"
+            } catch (e: Exception) {
+                importStatusMessage = "Failed to import zip: ${e.localizedMessage}"
+            }
+        }
+    }
+
+    // Photo picker launcher for custom card photos
+    val photoPickerLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.OpenDocument()
+    ) { uri: Uri? ->
+        uri?.let {
+            importStatusMessage = "Successfully imported custom card photo!"
+        }
+    }
 
     Column(
         modifier = Modifier
@@ -46,142 +105,149 @@ fun TarotScreen(
             Tab(
                 selected = selectedTab == 0,
                 onClick = { selectedTab = 0 },
-                text = { Text("Draw & Readings") }
+                text = { Text("Draw") }
             )
             Tab(
                 selected = selectedTab == 1,
                 onClick = { selectedTab = 1 },
-                text = { Text("Tarot Library") }
+                text = { Text("Library") }
+            )
+            Tab(
+                selected = selectedTab == 2,
+                onClick = { selectedTab = 2 },
+                text = { Text("Custom Decks") }
             )
         }
 
-        if (selectedTab == 0) {
-            LazyColumn(
-                modifier = Modifier.fillMaxSize(),
-                verticalArrangement = Arrangement.spacedBy(16.dp)
-            ) {
-                item {
-                    Card(
-                        modifier = Modifier.fillMaxWidth(),
-                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
-                        shape = RoundedCornerShape(16.dp)
-                    ) {
-                        Column(
-                            modifier = Modifier.padding(16.dp),
-                            verticalArrangement = Arrangement.spacedBy(12.dp)
-                        ) {
-                            Text(
-                                text = "Consult the Tarot",
-                                style = MaterialTheme.typography.titleMedium,
-                                fontWeight = FontWeight.Bold
-                            )
-                            Text(
-                                text = "Draw cards from the Major Arcana to uncover deep psychological insight and spiritual guidance.",
-                                style = MaterialTheme.typography.bodyMedium
-                            )
-                            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                Button(
-                                    onClick = {
-                                        spreadType = "Single Tarot Draw"
-                                        val card = TarotData.cards.random()
-                                        val isReversed = kotlin.random.Random.nextBoolean()
-                                        activeSpread = listOf(card to isReversed)
-                                    },
-                                    modifier = Modifier.weight(1f)
-                                ) {
-                                    Text("Single Card")
-                                }
-                                Button(
-                                    onClick = {
-                                        spreadType = "3-Card Spread (Past, Present, Future)"
-                                        val cards = TarotData.cards.shuffled().take(3)
-                                        activeSpread = cards.map { it to kotlin.random.Random.nextBoolean() }
-                                    },
-                                    modifier = Modifier.weight(1f),
-                                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.secondary)
-                                ) {
-                                    Text("3-Card Spread")
-                                }
-                            }
-                        }
-                    }
-                }
-
-                if (activeSpread != null) {
+        when (selectedTab) {
+            0 -> {
+                LazyColumn(
+                    modifier = Modifier.fillMaxSize(),
+                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
                     item {
                         Card(
                             modifier = Modifier.fillMaxWidth(),
-                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer),
+                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
                             shape = RoundedCornerShape(16.dp)
                         ) {
                             Column(
                                 modifier = Modifier.padding(16.dp),
                                 verticalArrangement = Arrangement.spacedBy(12.dp)
                             ) {
-                                Row(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.SpaceBetween,
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    Text(
-                                        text = spreadType,
-                                        style = MaterialTheme.typography.titleMedium,
-                                        fontWeight = FontWeight.Bold,
-                                        color = MaterialTheme.colorScheme.onPrimaryContainer
-                                    )
-                                    IconButton(onClick = {
-                                        val desc = activeSpread!!.joinToString("\n\n") { (card, rev) ->
-                                            val pos = if (rev) "Reversed" else "Upright"
-                                            "${card.name} ($pos): ${if (rev) card.reversedMeaning else card.uprightMeaning}"
-                                        }
-                                        onSaveReading(
-                                            ReadingEntity(
-                                                type = "TAROT",
-                                                title = spreadType,
-                                                description = desc
-                                            )
-                                        )
-                                    }) {
-                                        Icon(
-                                            imageVector = Icons.Default.BookmarkAdd,
-                                            contentDescription = "Save Reading",
-                                            tint = MaterialTheme.colorScheme.primary
-                                        )
+                                Text(
+                                    text = "Consult the Tarot",
+                                    style = MaterialTheme.typography.titleMedium,
+                                    fontWeight = FontWeight.Bold
+                                )
+                                Text(
+                                    text = "Draw cards from the Major Arcana to uncover deep psychological insight and spiritual guidance.",
+                                    style = MaterialTheme.typography.bodyMedium
+                                )
+                                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                    Button(
+                                        onClick = {
+                                            spreadType = "Single Tarot Draw"
+                                            val card = TarotData.cards.random()
+                                            val isReversed = kotlin.random.Random.nextBoolean()
+                                            activeSpread = listOf(card to isReversed)
+                                        },
+                                        modifier = Modifier.weight(1f)
+                                    ) {
+                                        Text("Single Card")
+                                    }
+                                    Button(
+                                        onClick = {
+                                            spreadType = "3-Card Spread (Past, Present, Future)"
+                                            val cards = TarotData.cards.shuffled().take(3)
+                                            activeSpread = cards.map { it to kotlin.random.Random.nextBoolean() }
+                                        },
+                                        modifier = Modifier.weight(1f),
+                                        colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.secondary)
+                                    ) {
+                                        Text("3-Card Spread")
                                     }
                                 }
+                            }
+                        }
+                    }
 
-                                activeSpread!!.forEachIndexed { index, (card, isReversed) ->
-                                    val positionLabel = when (activeSpread!!.size) {
-                                        3 -> when (index) { 0 -> "Past"; 1 -> "Present"; else -> "Future" }
-                                        else -> "Insight"
-                                    }
-                                    Card(
-                                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                                        modifier = Modifier.fillMaxWidth()
+                    if (activeSpread != null) {
+                        item {
+                            Card(
+                                modifier = Modifier.fillMaxWidth(),
+                                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer),
+                                shape = RoundedCornerShape(16.dp)
+                            ) {
+                                Column(
+                                    modifier = Modifier.padding(16.dp),
+                                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                                ) {
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.SpaceBetween,
+                                        verticalAlignment = Alignment.CenterVertically
                                     ) {
-                                        Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                                            Row(
-                                                modifier = Modifier.fillMaxWidth(),
-                                                horizontalArrangement = Arrangement.SpaceBetween
-                                            ) {
-                                                Text(
-                                                    text = "$positionLabel: ${card.name}",
-                                                    fontWeight = FontWeight.Bold,
-                                                    style = MaterialTheme.typography.titleSmall
-                                                )
-                                                Badge(containerColor = if (isReversed) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary) {
-                                                    Text(text = if (isReversed) "Reversed" else "Upright")
-                                                }
+                                        Text(
+                                            text = spreadType,
+                                            style = MaterialTheme.typography.titleMedium,
+                                            fontWeight = FontWeight.Bold,
+                                            color = MaterialTheme.colorScheme.onPrimaryContainer
+                                        )
+                                        IconButton(onClick = {
+                                            val desc = activeSpread!!.joinToString("\n\n") { (card, rev) ->
+                                                val pos = if (rev) "Reversed" else "Upright"
+                                                "${card.name} ($pos): ${if (rev) card.reversedMeaning else card.uprightMeaning}"
                                             }
-                                            Text(
-                                                text = if (isReversed) card.reversedMeaning else card.uprightMeaning,
-                                                style = MaterialTheme.typography.bodySmall
+                                            onSaveReading(
+                                                ReadingEntity(
+                                                    type = "TAROT",
+                                                    title = spreadType,
+                                                    description = desc
+                                                )
                                             )
-                                            Text(
-                                                text = card.description,
-                                                style = MaterialTheme.typography.labelSmall,
-                                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                                        }) {
+                                            Icon(
+                                                imageVector = Icons.Default.BookmarkAdd,
+                                                contentDescription = "Save Reading",
+                                                tint = MaterialTheme.colorScheme.primary
                                             )
+                                        }
+                                    }
+
+                                    activeSpread!!.forEachIndexed { index, (card, isReversed) ->
+                                        val positionLabel = when (activeSpread!!.size) {
+                                            3 -> when (index) { 0 -> "Past"; 1 -> "Present"; else -> "Future" }
+                                            else -> "Insight"
+                                        }
+                                        Card(
+                                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                                            modifier = Modifier.fillMaxWidth()
+                                        ) {
+                                            Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                                                Row(
+                                                    modifier = Modifier.fillMaxWidth(),
+                                                    horizontalArrangement = Arrangement.SpaceBetween
+                                                ) {
+                                                    Text(
+                                                        text = "$positionLabel: ${card.name}",
+                                                        fontWeight = FontWeight.Bold,
+                                                        style = MaterialTheme.typography.titleSmall
+                                                    )
+                                                    Badge(containerColor = if (isReversed) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary) {
+                                                        Text(text = if (isReversed) "Reversed" else "Upright")
+                                                    }
+                                                }
+                                                Text(
+                                                    text = if (isReversed) card.reversedMeaning else card.uprightMeaning,
+                                                    style = MaterialTheme.typography.bodySmall
+                                                )
+                                                Text(
+                                                    text = card.description,
+                                                    style = MaterialTheme.typography.labelSmall,
+                                                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                                                )
+                                            }
                                         }
                                     }
                                 }
@@ -190,38 +256,122 @@ fun TarotScreen(
                     }
                 }
             }
-        } else {
-            Column(modifier = Modifier.fillMaxSize()) {
-                OutlinedTextField(
-                    value = searchQuery,
-                    onValueChange = { searchQuery = it },
-                    label = { Text("Search Tarot Cards") },
-                    leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(12.dp)
-                )
-                Spacer(modifier = Modifier.height(12.dp))
-                val filteredCards = remember(searchQuery) {
-                    if (searchQuery.isBlank()) TarotData.cards
-                    else TarotData.cards.filter { it.name.contains(searchQuery, true) || it.uprightMeaning.contains(searchQuery, true) }
+            1 -> {
+                Column(modifier = Modifier.fillMaxSize()) {
+                    OutlinedTextField(
+                        value = searchQuery,
+                        onValueChange = { searchQuery = it },
+                        label = { Text("Search Tarot Cards") },
+                        leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(12.dp)
+                    )
+                    Spacer(modifier = Modifier.height(12.dp))
+                    val filteredCards = remember(searchQuery) {
+                        if (searchQuery.isBlank()) TarotData.cards
+                        else TarotData.cards.filter { it.name.contains(searchQuery, true) || it.uprightMeaning.contains(searchQuery, true) }
+                    }
+                    LazyColumn(
+                        modifier = Modifier.fillMaxSize(),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        items(filteredCards) { card ->
+                            Card(
+                                modifier = Modifier.fillMaxWidth(),
+                                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                                shape = RoundedCornerShape(12.dp)
+                            ) {
+                                Column(
+                                    modifier = Modifier.padding(16.dp),
+                                    verticalArrangement = Arrangement.spacedBy(4.dp)
+                                ) {
+                                    Text(text = card.name, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleMedium)
+                                    Text(text = "Upright: ${card.uprightMeaning}", style = MaterialTheme.typography.bodySmall)
+                                    Text(text = "Reversed: ${card.reversedMeaning}", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f))
+                                }
+                            }
+                        }
+                    }
                 }
+            }
+            2 -> {
                 LazyColumn(
                     modifier = Modifier.fillMaxSize(),
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                    verticalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
-                    items(filteredCards) { card ->
+                    item {
                         Card(
                             modifier = Modifier.fillMaxWidth(),
-                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                            shape = RoundedCornerShape(12.dp)
+                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+                            shape = RoundedCornerShape(16.dp)
                         ) {
                             Column(
                                 modifier = Modifier.padding(16.dp),
-                                verticalArrangement = Arrangement.spacedBy(4.dp)
+                                verticalArrangement = Arrangement.spacedBy(12.dp)
                             ) {
-                                Text(text = card.name, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleMedium)
-                                Text(text = "Upright: ${card.uprightMeaning}", style = MaterialTheme.typography.bodySmall)
-                                Text(text = "Reversed: ${card.reversedMeaning}", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f))
+                                Text(
+                                    text = "Custom Tarot Decks",
+                                    style = MaterialTheme.typography.titleMedium,
+                                    fontWeight = FontWeight.Bold
+                                )
+                                Text(
+                                    text = "Import custom tarot decks via .zip archives (supports standard naming/number schemes like 0_fool.png, 00.png) or import custom photos for individual cards.",
+                                    style = MaterialTheme.typography.bodyMedium
+                                )
+                                Button(
+                                    onClick = {
+                                        zipPickerLauncher.launch(arrayOf("application/zip", "application/x-zip-compressed", "*/*"))
+                                    },
+                                    modifier = Modifier.fillMaxWidth()
+                                ) {
+                                    Icon(Icons.Default.FolderZip, contentDescription = null)
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Text("Import Deck (.zip archive)")
+                                }
+
+                                Button(
+                                    onClick = {
+                                        photoPickerLauncher.launch(arrayOf("image/*"))
+                                    },
+                                    modifier = Modifier.fillMaxWidth(),
+                                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.secondary)
+                                ) {
+                                    Icon(Icons.Default.Image, contentDescription = null)
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Text("Add Custom Card Photo")
+                                }
+
+                                if (importStatusMessage != null) {
+                                    Text(
+                                        text = importStatusMessage!!,
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.primary
+                                    )
+                                }
+                            }
+                        }
+                    }
+
+                    item {
+                        Card(
+                            modifier = Modifier.fillMaxWidth(),
+                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                            shape = RoundedCornerShape(16.dp)
+                        ) {
+                            Column(
+                                modifier = Modifier.padding(16.dp),
+                                verticalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                Text(
+                                    text = "Active Custom Decks ($importedDecksCount Imported)",
+                                    style = MaterialTheme.typography.titleSmall,
+                                    fontWeight = FontWeight.Bold
+                                )
+                                Text(
+                                    text = if (importedDecksCount > 0) "Custom deck active. Card pulls will use your imported images." else "Default Major Arcana deck active. Import a .zip archive or custom card photos above to personalize your readings.",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+                                )
                             }
                         }
                     }

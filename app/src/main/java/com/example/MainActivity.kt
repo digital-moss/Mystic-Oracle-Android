@@ -85,6 +85,7 @@ class MainActivity : ComponentActivity() {
                             0 -> HomeScreen(
                                 onNavigateToRunes = { currentTab = 1 },
                                 onNavigateToIChing = { currentTab = 2 },
+                                onNavigateToTarot = { currentTab = 3 },
                                 onNavigateToHistory = { currentTab = 4 }
                             )
                             1 -> RuneDeckScreen(
