@@ -1,0 +1,7 @@
+{
+  "name": "Mystic Oracle",
+  "description": "Runes, I Ching, and Settings oracle application",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
+
