@@ -202,7 +202,7 @@ fun TarotScreen(
             Tab(
                 selected = selectedTab == 2,
                 onClick = { selectedTab = 2 },
-                text = { Text("Library (78)") }
+                text = { Text("Card Collection (78)") }
             )
             Tab(
                 selected = selectedTab == 3,
@@ -710,221 +710,20 @@ fun TarotScreen(
                 }
             }
 
-            // TAB 2: LIBRARY (78 CARDS)
+            // TAB 2: CARD COLLECTION (78 CARDS)
             2 -> {
-                Column(modifier = Modifier.fillMaxSize()) {
-                    OutlinedTextField(
-                        value = searchQuery,
-                        onValueChange = { searchQuery = it },
-                        label = { Text("Search all 78 Tarot Cards") },
-                        leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(12.dp)
-                    )
-                    Spacer(modifier = Modifier.height(12.dp))
-                    val filteredCards = remember(searchQuery) {
-                        if (searchQuery.isBlank()) TarotData.cards
-                        else TarotData.cards.filter {
-                            it.name.contains(searchQuery, true) ||
-                            it.uprightMeaning.contains(searchQuery, true) ||
-                            it.element.contains(searchQuery, true) ||
-                            (it.suit?.contains(searchQuery, true) == true)
-                        }
-                    }
-                    LazyColumn(
-                        modifier = Modifier.fillMaxSize(),
-                        verticalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        items(filteredCards) { card ->
-                            Card(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .clickable { selectedCardDetail = card },
-                                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                                shape = RoundedCornerShape(12.dp)
-                            ) {
-                                Row(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .padding(12.dp),
-                                    horizontalArrangement = Arrangement.spacedBy(12.dp),
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    AsyncImage(
-                                        model = TarotImageRepository.getCardImageUrl(card.name),
-                                        contentDescription = card.name,
-                                        modifier = Modifier
-                                            .size(56.dp, 84.dp)
-                                            .clip(RoundedCornerShape(8.dp))
-                                            .clickable { fullCardDialogCard = card },
-                                        contentScale = ContentScale.Crop
-                                    )
-                                    Column(
-                                        modifier = Modifier.weight(1f),
-                                        verticalArrangement = Arrangement.spacedBy(4.dp)
-                                    ) {
-                                        Row(
-                                            modifier = Modifier.fillMaxWidth(),
-                                            horizontalArrangement = Arrangement.SpaceBetween
-                                        ) {
-                                            Text(text = card.name, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleMedium)
-                                            Text(text = "${card.element} • ${card.planet}", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary)
-                                        }
-                                        Text(text = "Upright: ${card.uprightMeaning}", style = MaterialTheme.typography.bodySmall, maxLines = 2)
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
+                TarotCardCollectionView(
+                    cards = TarotData.cards,
+                    onCardClick = { card -> selectedCardDetail = card },
+                    onCardImageClick = { card -> fullCardDialogCard = card }
+                )
             }
 
             // TAB 3: DECKS & ART
             3 -> {
-                LazyColumn(
-                    modifier = Modifier.fillMaxSize(),
-                    verticalArrangement = Arrangement.spacedBy(16.dp)
-                ) {
-                    item {
-                        Card(
-                            modifier = Modifier.fillMaxWidth(),
-                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
-                            shape = RoundedCornerShape(16.dp)
-                        ) {
-                            Column(
-                                modifier = Modifier.padding(16.dp),
-                                verticalArrangement = Arrangement.spacedBy(12.dp)
-                            ) {
-                                Text(
-                                    text = "Pre-Installed Historical Decks",
-                                    style = MaterialTheme.typography.titleMedium,
-                                    fontWeight = FontWeight.Bold
-                                )
-
-                                DeckManager.availableDecks.forEach { deck ->
-                                    val isSelected = DeckManager.currentDeckId == deck.id
-                                    Card(
-                                        modifier = Modifier
-                                            .fillMaxWidth()
-                                            .clickable { DeckManager.currentDeckId = deck.id },
-                                        colors = CardDefaults.cardColors(
-                                            containerColor = if (isSelected) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surface
-                                        ),
-                                        shape = RoundedCornerShape(12.dp)
-                                    ) {
-                                        Row(
-                                            modifier = Modifier
-                                                .fillMaxWidth()
-                                                .padding(12.dp),
-                                            horizontalArrangement = Arrangement.spacedBy(12.dp),
-                                            verticalAlignment = Alignment.CenterVertically
-                                        ) {
-                                            AsyncImage(
-                                                model = deck.sampleImageUrl,
-                                                contentDescription = deck.name,
-                                                modifier = Modifier
-                                                    .size(50.dp, 75.dp)
-                                                    .clip(RoundedCornerShape(8.dp)),
-                                                contentScale = ContentScale.Crop
-                                            )
-                                            Column(modifier = Modifier.weight(1f)) {
-                                                Text(text = deck.name, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleSmall)
-                                                Text(text = deck.description, style = MaterialTheme.typography.bodySmall, maxLines = 2)
-                                            }
-                                            if (isSelected) {
-                                                Icon(Icons.Default.CheckCircle, contentDescription = "Selected", tint = MaterialTheme.colorScheme.primary)
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
-
-                    item {
-                        Card(
-                            modifier = Modifier.fillMaxWidth(),
-                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                            shape = RoundedCornerShape(16.dp)
-                        ) {
-                            Column(
-                                modifier = Modifier.padding(16.dp),
-                                verticalArrangement = Arrangement.spacedBy(12.dp)
-                            ) {
-                                Text(
-                                    text = "Custom Deck Import & Export (ZIP)",
-                                    style = MaterialTheme.typography.titleMedium,
-                                    fontWeight = FontWeight.Bold
-                                )
-                                Text(
-                                    text = "Import custom deck art packs or export your deck archives in a portable .zip file.",
-                                    style = MaterialTheme.typography.bodySmall
-                                )
-                                Row(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                                ) {
-                                    Button(
-                                        onClick = { zipPickerLauncher.launch(arrayOf("application/zip", "application/x-zip-compressed")) },
-                                        modifier = Modifier.weight(1f)
-                                    ) {
-                                        Icon(Icons.Default.FolderZip, contentDescription = null, modifier = Modifier.size(16.dp))
-                                        Spacer(modifier = Modifier.width(6.dp))
-                                        Text("Import ZIP")
-                                    }
-
-                                    OutlinedButton(
-                                        onClick = {
-                                            try {
-                                                val cacheDir = File(context.cacheDir, "exported_decks").apply { if (!exists()) mkdirs() }
-                                                val zipFile = File(cacheDir, "MysticTarot_Decks_${System.currentTimeMillis()}.zip")
-                                                val zos = ZipOutputStream(FileOutputStream(zipFile))
-                                                val decksDir = File(context.filesDir, "custom_decks")
-                                                if (decksDir.exists() && decksDir.listFiles()?.isNotEmpty() == true) {
-                                                    decksDir.walkTopDown().filter { it.isFile }.forEach { file ->
-                                                        val entryName = file.relativeTo(decksDir).path
-                                                        zos.putNextEntry(ZipEntry(entryName))
-                                                        file.inputStream().use { it.copyTo(zos) }
-                                                        zos.closeEntry()
-                                                    }
-                                                } else {
-                                                    zos.putNextEntry(ZipEntry("custom_deck_readme.txt"))
-                                                    zos.write("Mystic Oracle Custom Deck Archive\nPackage your 78 tarot cards here to import custom decks.".toByteArray())
-                                                    zos.closeEntry()
-                                                }
-                                                zos.close()
-
-                                                val uri = FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", zipFile)
-                                                val shareIntent = Intent(Intent.ACTION_SEND).apply {
-                                                    type = "application/zip"
-                                                    putExtra(Intent.EXTRA_STREAM, uri)
-                                                    putExtra(Intent.EXTRA_SUBJECT, "Exported Mystic Tarot Deck (.zip)")
-                                                    addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-                                                }
-                                                context.startActivity(Intent.createChooser(shareIntent, "Export Decks (.zip)"))
-                                                importStatusMessage = "Deck archive exported successfully!"
-                                            } catch (e: Exception) {
-                                                importStatusMessage = "Export failed: ${e.localizedMessage}"
-                                            }
-                                        },
-                                        modifier = Modifier.weight(1f)
-                                    ) {
-                                        Icon(Icons.Default.Upload, contentDescription = null, modifier = Modifier.size(16.dp))
-                                        Spacer(modifier = Modifier.width(6.dp))
-                                        Text("Export ZIP")
-                                    }
-                                }
-                                if (importStatusMessage != null) {
-                                    Text(
-                                        text = importStatusMessage!!,
-                                        style = MaterialTheme.typography.bodySmall,
-                                        color = MaterialTheme.colorScheme.primary
-                                    )
-                                }
-                            }
-                        }
-                    }
-                }
+                TarotDeckBrowserView(
+                    onDismissOrBack = { selectedTab = 0 }
+                )
             }
         }
     }

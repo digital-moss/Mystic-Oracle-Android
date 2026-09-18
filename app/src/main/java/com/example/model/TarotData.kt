@@ -1,6 +1,7 @@
 package com.example.model
 
 data class TarotCard(
+    val id: Int = 0,
     val name: String,
     val arcana: String, // "Major" or "Minor"
     val suit: String?, // "Wands", "Cups", "Swords", "Pentacles", or null for Major
@@ -16,7 +17,7 @@ data class TarotCard(
 )
 
 object TarotData {
-    val cards = listOf(
+    val defaultCards: List<TarotCard> = listOf(
         TarotCard(
             name = "0. The Fool",
             arcana = "Major",
@@ -1116,5 +1117,8 @@ object TarotData {
             symbology = listOf("Bull Head Carvings (Taurus)", "Grapevine Robes", "Scepter & Golden Coin", "Castle Courtyard"),
             defaultTerms = listOf("Empire", "Security", "Leadership", "Abundance", "Mastery")
         )
-    )
+    ).mapIndexed { idx, card -> card.copy(id = idx) }
+
+    val cards: List<TarotCard>
+        get() = com.example.data.CardAlignmentManager.alignedCards
 }

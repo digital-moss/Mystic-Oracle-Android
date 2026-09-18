@@ -9,8 +9,10 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -23,11 +25,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.FileProvider
 import coil.compose.AsyncImage
+import com.example.data.CardAlignmentManager
 import com.example.data.DeckManager
 import com.example.data.ReadingEntity
 import com.example.donations.DonationOptions
@@ -54,6 +58,15 @@ fun SettingsScreen(
     onImportReadings: (List<ReadingEntity>) -> Unit
 ) {
     val context = LocalContext.current
+    var showAlignmentStudio by remember { mutableStateOf(false) }
+
+    if (showAlignmentStudio) {
+        CardAlignmentStudioScreen(
+            onBack = { showAlignmentStudio = false }
+        )
+        return
+    }
+
     var soundEnabled by remember { mutableStateOf(true) }
     var dailyReminder by remember { mutableStateOf(false) }
 
@@ -74,6 +87,8 @@ fun SettingsScreen(
     var importStatus by remember { mutableStateOf("") }
     var fontImportStatus by remember { mutableStateOf<String?>(null) }
     var deckZipStatus by remember { mutableStateOf<String?>(null) }
+    var deckSearchQuery by remember { mutableStateOf("") }
+    var deckSourceFilter by remember { mutableStateOf("All") }
     var donationStatus by remember { mutableStateOf("") }
     var driveSyncStatus by remember { mutableStateOf(DeckManager.syncStatusMessage) }
 
@@ -741,7 +756,7 @@ fun SettingsScreen(
             }
         }
 
-        // 6. Pre-installed Decks Preset Card
+        // 6. Tarot Deck Selection (alabe.com, GitHub & Historic)
         item {
             Card(
                 modifier = Modifier.fillMaxWidth(),
@@ -753,36 +768,101 @@ fun SettingsScreen(
                     modifier = Modifier.padding(16.dp),
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-                    Row(horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = Alignment.CenterVertically) {
-                        Icon(Icons.Default.Style, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
-                        Text(
-                            text = "Historical Deck Presets",
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold
-                        )
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Row(horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = Alignment.CenterVertically) {
+                            Icon(Icons.Default.Style, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+                            Text(
+                                text = "Tarot Decks (${DeckManager.availableDecks.size})",
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+                    }
+
+                    // Search input
+                    OutlinedTextField(
+                        value = deckSearchQuery,
+                        onValueChange = { deckSearchQuery = it },
+                        placeholder = { Text("Filter decks (alabe.com, GitHub...)") },
+                        leadingIcon = { Icon(Icons.Default.Search, contentDescription = null, modifier = Modifier.size(18.dp)) },
+                        trailingIcon = {
+                            if (deckSearchQuery.isNotEmpty()) {
+                                IconButton(onClick = { deckSearchQuery = "" }) {
+                                    Icon(Icons.Default.Close, contentDescription = "Clear", modifier = Modifier.size(16.dp))
+                                }
+                            }
+                        },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(12.dp)
+                    )
+
+                    // Source Filter Chips
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .horizontalScroll(rememberScrollState()),
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        listOf("All", "alabe.com/tarot", "GitHub", "Built-in", "Custom").forEach { filter ->
+                            val isSelected = deckSourceFilter.equals(filter, ignoreCase = true)
+                            FilterChip(
+                                selected = isSelected,
+                                onClick = { deckSourceFilter = if (isSelected && filter != "All") "All" else filter },
+                                label = { Text(filter, fontSize = 11.sp) },
+                                shape = RoundedCornerShape(10.dp)
+                            )
+                        }
+                    }
+
+                    val filteredDecks = remember(deckSearchQuery, deckSourceFilter, DeckManager.availableDecks) {
+                        DeckManager.searchDecks(deckSearchQuery, deckSourceFilter)
                     }
 
                     Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                        DeckManager.availableDecks.forEach { deck ->
+                        filteredDecks.forEach { deck ->
+                            val isSelected = DeckManager.currentDeckId == deck.id
                             Row(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .clip(RoundedCornerShape(8.dp))
-                                    .background(if (DeckManager.currentDeckId == deck.id) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceVariant)
+                                    .clip(RoundedCornerShape(10.dp))
+                                    .background(if (isSelected) MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f) else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
                                     .clickable {
-                                        DeckManager.currentDeckId = deck.id
-                                        DeckManager.savePreferences(context)
+                                        DeckManager.selectDeck(deck.id, context)
                                     }
                                     .padding(12.dp),
                                 horizontalArrangement = Arrangement.SpaceBetween,
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
                                 Column(modifier = Modifier.weight(1f)) {
-                                    Text(deck.name, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodyMedium)
-                                    Text(deck.description, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f))
+                                    Row(
+                                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Text(deck.name, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodyMedium)
+                                        val (badgeColor, badgeText) = when {
+                                            deck.source.contains("alabe", true) -> Color(0xFF7B1FA2) to "alabe.com"
+                                            deck.source.contains("github", true) -> Color(0xFF0288D1) to "GitHub"
+                                            deck.isCustom -> Color(0xFF388E3C) to "Custom"
+                                            else -> Color(0xFFE65100) to "Historic"
+                                        }
+                                        Box(
+                                            modifier = Modifier
+                                                .clip(RoundedCornerShape(4.dp))
+                                                .background(badgeColor.copy(alpha = 0.15f))
+                                                .padding(horizontal = 5.dp, vertical = 1.dp)
+                                        ) {
+                                            Text(badgeText, fontSize = 9.sp, fontWeight = FontWeight.SemiBold, color = badgeColor)
+                                        }
+                                    }
+                                    Text(deck.description, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f), maxLines = 2)
                                 }
-                                if (DeckManager.currentDeckId == deck.id) {
-                                    Badge(containerColor = MaterialTheme.colorScheme.primary) { Text("Active", modifier = Modifier.padding(4.dp)) }
+                                if (isSelected) {
+                                    Icon(Icons.Default.CheckCircle, contentDescription = "Active", tint = MaterialTheme.colorScheme.primary)
                                 }
                             }
                         }
@@ -791,7 +871,122 @@ fun SettingsScreen(
             }
         }
 
-        // 7. Custom Card Backs & Coin Art Card
+        // 7. Card & Database Alignment Studio
+        item {
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                shape = RoundedCornerShape(16.dp),
+                elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+            ) {
+                Column(
+                    modifier = Modifier.padding(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Row(horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = Alignment.CenterVertically) {
+                            Icon(Icons.Default.Tune, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+                            Column {
+                                Text(
+                                    text = "Card & Database Alignment Studio",
+                                    style = MaterialTheme.typography.titleMedium,
+                                    fontWeight = FontWeight.Bold
+                                )
+                                Text(
+                                    text = "Troubleshoot & fine-tune photo vs info alignments",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+                                )
+                            }
+                        }
+                    }
+
+                    Text(
+                        text = "Move card photos vs card info (IDs, names, tags, element, planet, astrological alignment). Shift offsets, swap bindings, and edit metadata to correct misaligned decks.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f)
+                    )
+
+                    val diagnostics = remember(CardAlignmentManager.slots) { CardAlignmentManager.getDiagnostics() }
+
+                    Surface(
+                        shape = RoundedCornerShape(8.dp),
+                        color = if (diagnostics.isCleanDefault) MaterialTheme.colorScheme.surfaceVariant
+                        else MaterialTheme.colorScheme.tertiaryContainer
+                    ) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(10.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = if (diagnostics.isCleanDefault) "Status: 78 Cards • 1:1 Standard Alignment"
+                                else "Status: ⚠️ Custom Alignment (${diagnostics.modifiedPhotoCount} shifts, ${diagnostics.modifiedInfoCount} edits)",
+                                style = MaterialTheme.typography.bodySmall,
+                                fontWeight = FontWeight.Medium
+                            )
+                            if (!diagnostics.isCleanDefault) {
+                                TextButton(
+                                    onClick = { CardAlignmentManager.resetAll(context) }
+                                ) {
+                                    Text("Reset", style = MaterialTheme.typography.labelSmall)
+                                }
+                            }
+                        }
+                    }
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Button(
+                            onClick = { showAlignmentStudio = true },
+                            modifier = Modifier
+                                .weight(1f)
+                                .testTag("launch_alignment_studio_btn")
+                        ) {
+                            Icon(Icons.Default.Tune, contentDescription = null, modifier = Modifier.size(16.dp))
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text("Open Alignment Studio")
+                        }
+                    }
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        OutlinedButton(
+                            onClick = {
+                                CardAlignmentManager.shiftAllPhotos(1, context)
+                            },
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            Icon(Icons.Default.ArrowForward, contentDescription = null, modifier = Modifier.size(16.dp))
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text("Shift Photos +1")
+                        }
+                        OutlinedButton(
+                            onClick = {
+                                CardAlignmentManager.shiftAllPhotos(-1, context)
+                            },
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            Icon(Icons.Default.ArrowBack, contentDescription = null, modifier = Modifier.size(16.dp))
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text("Shift Photos -1")
+                        }
+                    }
+                }
+            }
+        }
+
+        // 8. Custom Card Backs & Coin Art Card
         item {
             Card(
                 modifier = Modifier.fillMaxWidth(),

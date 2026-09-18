@@ -1,5 +1,9 @@
 package com.example.ui.screens
 
+import android.widget.Toast
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.activity.result.PickVisualMediaRequest
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.gestures.detectTransformGestures
@@ -24,7 +28,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import coil.compose.AsyncImage
-import com.example.model.TarotCard
+import com.example.network.TarotImageRepository
 import com.example.util.ImageSaver
 import kotlinx.coroutines.launch
 
@@ -35,15 +39,113 @@ fun ZoomableCardDialog(
     fallbackResId: Int? = null,
     isReversedInitially: Boolean = false,
     subtitle: String? = null,
+    deckId: String = com.example.data.DeckManager.currentDeckId,
+    onArtChanged: ((String) -> Unit)? = null,
     onDismiss: () -> Unit
 ) {
     val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
 
+    var currentImageUrl by remember { mutableStateOf(imageUrl) }
     var scale by remember { mutableFloatStateOf(1f) }
     var offset by remember { mutableStateOf(Offset.Zero) }
     var isReversed by remember { mutableStateOf(isReversedInitially) }
     var isSaving by remember { mutableStateOf(false) }
+
+    var showReplaceDialog by remember { mutableStateOf(false) }
+    var customUrlInput by remember { mutableStateOf("") }
+    var hasCustomArt by remember { mutableStateOf(TarotImageRepository.hasCustomCardArt(cardName, deckId)) }
+
+    val resolvedPlaceholder = fallbackResId ?: TarotImageRepository.getCardPlaceholderRes(cardName)
+
+    val photoPickerLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.PickVisualMedia()
+    ) { uri ->
+        if (uri != null) {
+            val uriStr = uri.toString()
+            TarotImageRepository.setCardImageUrl(cardName, uriStr, deckId, context)
+            currentImageUrl = uriStr
+            hasCustomArt = true
+            onArtChanged?.invoke(uriStr)
+            Toast.makeText(context, "Card art replaced for $cardName", Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    if (showReplaceDialog) {
+        AlertDialog(
+            onDismissRequest = { showReplaceDialog = false },
+            title = { Text("Replace Art: $cardName") },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    Text("Select a photo from device, enter a custom URL, or pick from historical presets.")
+
+                    Button(
+                        onClick = {
+                            showReplaceDialog = false
+                            photoPickerLauncher.launch(
+                                PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
+                            )
+                        },
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Icon(Icons.Default.AddPhotoAlternate, contentDescription = null, modifier = Modifier.size(18.dp))
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text("Pick from Photo Library")
+                    }
+
+                    HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
+
+                    OutlinedTextField(
+                        value = customUrlInput,
+                        onValueChange = { customUrlInput = it },
+                        label = { Text("Custom Image URL (https://...)") },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+
+                    Text("Or choose a preset style:", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold)
+                    TarotImageRepository.presetCardImages.forEach { (presetName, presetUrl) ->
+                        OutlinedButton(
+                            onClick = {
+                                TarotImageRepository.setCardImageUrl(cardName, presetUrl, deckId, context)
+                                currentImageUrl = presetUrl
+                                hasCustomArt = true
+                                onArtChanged?.invoke(presetUrl)
+                                showReplaceDialog = false
+                                Toast.makeText(context, "Applied $presetName", Toast.LENGTH_SHORT).show()
+                            },
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Text(presetName, maxLines = 1)
+                        }
+                    }
+                }
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        if (customUrlInput.isNotBlank()) {
+                            val clean = customUrlInput.trim()
+                            TarotImageRepository.setCardImageUrl(cardName, clean, deckId, context)
+                            currentImageUrl = clean
+                            hasCustomArt = true
+                            onArtChanged?.invoke(clean)
+                            customUrlInput = ""
+                            showReplaceDialog = false
+                            Toast.makeText(context, "Custom art URL applied", Toast.LENGTH_SHORT).show()
+                        }
+                    }
+                ) {
+                    Text("Apply URL")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showReplaceDialog = false }) {
+                    Text("Cancel")
+                }
+            }
+        )
+    }
 
     Dialog(
         onDismissRequest = onDismiss,
@@ -51,8 +153,8 @@ fun ZoomableCardDialog(
     ) {
         Card(
             modifier = Modifier
-                .fillMaxWidth(0.94f)
-                .fillMaxHeight(0.90f)
+                .fillMaxWidth(0.95f)
+                .fillMaxHeight(0.92f)
                 .clip(RoundedCornerShape(24.dp)),
             colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
         ) {
@@ -69,12 +171,19 @@ fun ZoomableCardDialog(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Column(modifier = Modifier.weight(1f)) {
-                        Text(
-                            text = cardName,
-                            style = MaterialTheme.typography.titleLarge,
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.primary
-                        )
+                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            Text(
+                                text = cardName,
+                                style = MaterialTheme.typography.titleLarge,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.primary
+                            )
+                            if (hasCustomArt) {
+                                Badge(containerColor = MaterialTheme.colorScheme.tertiary) {
+                                    Text("Custom Art", style = MaterialTheme.typography.labelSmall)
+                                }
+                            }
+                        }
                         if (!subtitle.isNullOrBlank()) {
                             Text(
                                 text = subtitle,
@@ -95,7 +204,7 @@ fun ZoomableCardDialog(
                         .weight(1f)
                         .fillMaxWidth()
                         .clip(RoundedCornerShape(16.dp))
-                        .background(Color.Black.copy(alpha = 0.85f))
+                        .background(Color.Black.copy(alpha = 0.88f))
                         .pointerInput(Unit) {
                             detectTapGestures(
                                 onDoubleTap = {
@@ -126,7 +235,7 @@ fun ZoomableCardDialog(
                     contentAlignment = Alignment.Center
                 ) {
                     AsyncImage(
-                        model = imageUrl,
+                        model = currentImageUrl,
                         contentDescription = cardName,
                         modifier = Modifier
                             .fillMaxSize()
@@ -138,8 +247,8 @@ fun ZoomableCardDialog(
                                 rotationZ = if (isReversed) 180f else 0f
                             },
                         contentScale = ContentScale.Fit,
-                        placeholder = fallbackResId?.let { painterResource(id = it) },
-                        error = fallbackResId?.let { painterResource(id = it) }
+                        placeholder = painterResource(id = resolvedPlaceholder),
+                        error = painterResource(id = resolvedPlaceholder)
                     )
 
                     // Zoom indicator badge & Reset control
@@ -179,9 +288,9 @@ fun ZoomableCardDialog(
                     }
                 }
 
-                Spacer(modifier = Modifier.height(12.dp))
+                Spacer(modifier = Modifier.height(10.dp))
 
-                // Bottom Action Bar: Download, Share, Reverse, Zoom Info
+                // Bottom Action Bar: Replace, Download, Delete, Share, Reverse
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Row(
                         modifier = Modifier.fillMaxWidth(),
@@ -189,7 +298,7 @@ fun ZoomableCardDialog(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Text(
-                            text = "Pinch or double-tap to zoom & pan",
+                            text = "Double-tap or pinch to zoom",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -208,16 +317,26 @@ fun ZoomableCardDialog(
                         )
                     }
 
+                    // Row 1: Replace Art & Download Art
                     Row(
                         modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(10.dp)
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
+                        FilledTonalButton(
+                            onClick = { showReplaceDialog = true },
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            Icon(Icons.Default.AddPhotoAlternate, contentDescription = null, modifier = Modifier.size(16.dp))
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text("Replace Art")
+                        }
+
                         Button(
                             onClick = {
                                 if (!isSaving) {
                                     isSaving = true
                                     coroutineScope.launch {
-                                        ImageSaver.downloadCardImage(context, imageUrl, cardName, fallbackResId)
+                                        ImageSaver.downloadCardImage(context, currentImageUrl, cardName, resolvedPlaceholder)
                                         isSaving = false
                                     }
                                 }
@@ -225,21 +344,46 @@ fun ZoomableCardDialog(
                             modifier = Modifier.weight(1f),
                             enabled = !isSaving
                         ) {
-                            Icon(Icons.Default.Download, contentDescription = null, modifier = Modifier.size(18.dp))
-                            Spacer(modifier = Modifier.width(6.dp))
-                            Text(if (isSaving) "Saving..." else "Download Art")
+                            Icon(Icons.Default.Download, contentDescription = null, modifier = Modifier.size(16.dp))
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text(if (isSaving) "Saving..." else "Download")
+                        }
+                    }
+
+                    // Row 2: Delete/Reset Art & Share
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        OutlinedButton(
+                            onClick = {
+                                TarotImageRepository.deleteCardImageUrl(cardName, deckId, context)
+                                val resetUrl = TarotImageRepository.getCardImageUrl(cardName, deckId)
+                                currentImageUrl = resetUrl
+                                hasCustomArt = false
+                                onArtChanged?.invoke(resetUrl)
+                                Toast.makeText(context, "Card art reset to default for $cardName", Toast.LENGTH_SHORT).show()
+                            },
+                            modifier = Modifier.weight(1f),
+                            colors = ButtonDefaults.outlinedButtonColors(
+                                contentColor = if (hasCustomArt) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        ) {
+                            Icon(Icons.Default.DeleteOutline, contentDescription = null, modifier = Modifier.size(16.dp))
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text(if (hasCustomArt) "Delete Art" else "Reset Default")
                         }
 
                         OutlinedButton(
                             onClick = {
                                 coroutineScope.launch {
-                                    ImageSaver.shareCardImage(context, imageUrl, cardName, fallbackResId)
+                                    ImageSaver.shareCardImage(context, currentImageUrl, cardName, resolvedPlaceholder)
                                 }
                             },
                             modifier = Modifier.weight(1f)
                         ) {
-                            Icon(Icons.Default.Share, contentDescription = null, modifier = Modifier.size(18.dp))
-                            Spacer(modifier = Modifier.width(6.dp))
+                            Icon(Icons.Default.Share, contentDescription = null, modifier = Modifier.size(16.dp))
+                            Spacer(modifier = Modifier.width(4.dp))
                             Text("Share")
                         }
                     }

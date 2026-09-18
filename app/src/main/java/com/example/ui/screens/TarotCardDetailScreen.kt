@@ -79,13 +79,16 @@ fun TarotCardDetailScreen(
     val coroutineScope = rememberCoroutineScope()
     val density = androidx.compose.ui.platform.LocalDensity.current.density
 
+    val currentDeckId = com.example.data.DeckManager.currentDeckId
+
     val photoPickerLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.PickVisualMedia()
     ) { uri ->
         if (uri != null) {
             val uriStr = uri.toString()
-            TarotImageRepository.setCardImageUrl(card.name, uriStr)
+            TarotImageRepository.setCardImageUrl(card.name, uriStr, currentDeckId, context)
             currentImageUrl = uriStr
+            android.widget.Toast.makeText(context, "Card art replaced for ${card.name}", android.widget.Toast.LENGTH_SHORT).show()
         }
     }
 
@@ -112,6 +115,10 @@ fun TarotCardDetailScreen(
             fallbackResId = getCardImageRes(card),
             isReversedInitially = isReversed,
             subtitle = "${card.arcana} Arcana • ${card.element} • ${card.planet}",
+            deckId = currentDeckId,
+            onArtChanged = { newUrl ->
+                currentImageUrl = newUrl
+            },
             onDismiss = { showFullCardDialog = false }
         )
     }
@@ -297,7 +304,7 @@ fun TarotCardDetailScreen(
                             ) {
                                 Icon(Icons.Default.AddPhotoAlternate, contentDescription = null, modifier = Modifier.size(16.dp))
                                 Spacer(modifier = Modifier.width(4.dp))
-                                Text("Import Art")
+                                Text("Replace Art")
                             }
 
                             OutlinedButton(
@@ -307,6 +314,23 @@ fun TarotCardDetailScreen(
                                 Icon(Icons.Default.Edit, contentDescription = null, modifier = Modifier.size(16.dp))
                                 Spacer(modifier = Modifier.width(4.dp))
                                 Text("Presets/URL")
+                            }
+
+                            val hasCustom = TarotImageRepository.hasCustomCardArt(card.name, currentDeckId)
+                            OutlinedButton(
+                                onClick = {
+                                    TarotImageRepository.deleteCardImageUrl(card.name, currentDeckId, context)
+                                    currentImageUrl = TarotImageRepository.getCardImageUrl(card.name, currentDeckId)
+                                    android.widget.Toast.makeText(context, "Reset art to deck default for ${card.name}", android.widget.Toast.LENGTH_SHORT).show()
+                                },
+                                modifier = Modifier.weight(1f),
+                                colors = ButtonDefaults.outlinedButtonColors(
+                                    contentColor = if (hasCustom) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            ) {
+                                Icon(Icons.Default.DeleteOutline, contentDescription = null, modifier = Modifier.size(16.dp))
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text(if (hasCustom) "Delete" else "Reset")
                             }
                         }
                     }
@@ -561,9 +585,10 @@ fun TarotCardDetailScreen(
                     for (preset in TarotImageRepository.presetCardImages) {
                         TextButton(
                             onClick = {
-                                TarotImageRepository.setCardImageUrl(card.name, preset.second)
+                                TarotImageRepository.setCardImageUrl(card.name, preset.second, currentDeckId, context)
                                 currentImageUrl = preset.second
                                 showImageSwapDialog = false
+                                android.widget.Toast.makeText(context, "Applied ${preset.first}", android.widget.Toast.LENGTH_SHORT).show()
                             },
                             modifier = Modifier.fillMaxWidth()
                         ) {
@@ -576,10 +601,11 @@ fun TarotCardDetailScreen(
                 TextButton(
                     onClick = {
                         if (customUrlInput.isNotBlank()) {
-                            TarotImageRepository.setCardImageUrl(card.name, customUrlInput.trim())
+                            TarotImageRepository.setCardImageUrl(card.name, customUrlInput.trim(), currentDeckId, context)
                             currentImageUrl = customUrlInput.trim()
                             customUrlInput = ""
                             showImageSwapDialog = false
+                            android.widget.Toast.makeText(context, "Applied custom URL for ${card.name}", android.widget.Toast.LENGTH_SHORT).show()
                         }
                     }
                 ) {
@@ -590,9 +616,10 @@ fun TarotCardDetailScreen(
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     TextButton(
                         onClick = {
-                            TarotImageRepository.resetCardImageUrl(card.name)
-                            currentImageUrl = TarotImageRepository.getCardImageUrl(card.name)
+                            TarotImageRepository.deleteCardImageUrl(card.name, currentDeckId, context)
+                            currentImageUrl = TarotImageRepository.getCardImageUrl(card.name, currentDeckId)
                             showImageSwapDialog = false
+                            android.widget.Toast.makeText(context, "Reset art to deck default", android.widget.Toast.LENGTH_SHORT).show()
                         }
                     ) {
                         Text("Reset Default")

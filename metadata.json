@@ -1,6 +1,6 @@
 {
   "name": "Mystic Oracle",
-  "description": "Tarot, Runes, I Ching, and Yes/No Oracle Sanctuary with zoomable cards, haptics, custom fonts, 8 themes, deck import/export, and Google Drive sync",
+  "description": "Tarot, Runes, I Ching, and Yes/No Oracle Sanctuary with card alignment studio, zoomable cards, haptics, custom fonts, 8 themes, deck import/export, and Google Drive sync",
   "requestFramePermissions": [],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }
