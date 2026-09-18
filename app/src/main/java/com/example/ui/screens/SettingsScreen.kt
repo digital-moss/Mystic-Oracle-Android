@@ -1110,7 +1110,7 @@ fun SettingsScreen(
                     )
 
                     // CSV Buttons
-                    Text("Reading Journal (CSV):", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
+                    Text("Reading Notes (CSV):", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.spacedBy(8.dp)

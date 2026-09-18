@@ -404,7 +404,7 @@ fun TarotScreen(
                         }
                     }
 
-                    // Card Action Controls (Flip Back, Reversal Toggle for Learning, Draw Another)
+                    // Card Action Controls (Flip Back, Draw Another)
                     item {
                         Row(
                             horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -442,7 +442,7 @@ fun TarotScreen(
                         }
                     }
 
-                    // Reversal Toggle for Learning
+                    // Reversal Toggle
                     item {
                         Card(
                             modifier = Modifier.fillMaxWidth(),
@@ -459,12 +459,7 @@ fun TarotScreen(
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
                                     Column {
-                                        Text(
-                                            text = "Reversal Toggle for Learning",
-                                            style = MaterialTheme.typography.titleSmall,
-                                            fontWeight = FontWeight.Bold,
-                                            color = MaterialTheme.colorScheme.onSecondaryContainer
-                                        )
+                                        // Removed title
                                         Text(
                                             text = "Status: ${if (simpleDrawReversed) "Reversed (180°)" else "Upright"}",
                                             style = MaterialTheme.typography.bodySmall,
@@ -478,9 +473,9 @@ fun TarotScreen(
                                             simpleDrawReversed = !simpleDrawReversed
                                         }
                                     ) {
-                                        Icon(Icons.Default.Sync, contentDescription = null, modifier = Modifier.size(16.dp))
+                                        Icon(Icons.Default.SwapHoriz, contentDescription = null, modifier = Modifier.size(16.dp))
                                         Spacer(modifier = Modifier.width(6.dp))
-                                        Text(if (simpleDrawReversed) "Flip to Upright" else "Flip to Reversed")
+                                        Text(if (simpleDrawReversed) "Set Upright" else "Reverse")
                                     }
                                 }
 
@@ -578,7 +573,7 @@ fun TarotScreen(
                                     ) {
                                         Icon(Icons.Default.BookmarkAdd, contentDescription = null, modifier = Modifier.size(18.dp))
                                         Spacer(modifier = Modifier.width(8.dp))
-                                        Text("Save Draw to Journal")
+                                        Text("Save Draw to Notes")
                                     }
                                 }
                             }

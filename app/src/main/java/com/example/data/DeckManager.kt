@@ -24,115 +24,11 @@ object DeckManager {
     val builtInDecks = listOf(
         TarotDeckPreset(
             id = "rider_waite",
-            name = "Rider-Waite-Smith 1909 Classic",
-            description = "The timeless traditional esoteric masterpiece illustrated by Pamela Colman Smith.",
-            sampleImageUrl = "https://upload.wikimedia.org/wikipedia/commons/9/90/Rider-Waite-Smith_Tarot_00_Fool.jpg",
-            source = "Built-in",
+            name = "Rider-Waite-Smith (searge/tarot & Alabe)",
+            description = "The verified 78-card Rider-Waite-Smith deck powered by GitHub searge/tarot high-resolution image resources and Alabe.com esoteric engine.",
+            sampleImageUrl = "https://raw.githubusercontent.com/searge/tarot/master/assets/img/big/maj00.jpg",
+            source = "www.alabe.com & GitHub searge/tarot",
             author = "Pamela Colman Smith & A.E. Waite"
-        ),
-        TarotDeckPreset(
-            id = "alabe_albano",
-            name = "Albano-Waite Vibrant Tarot (1968)",
-            description = "Frankie Albano's vivid psychotropic colorization with astrological decanate correspondences as featured on alabe.com.",
-            sampleImageUrl = "https://upload.wikimedia.org/wikipedia/commons/9/90/Rider-Waite-Smith_Tarot_00_Fool.jpg",
-            source = "www.alabe.com/tarot",
-            author = "Frankie Albano",
-            websiteUrl = "https://www.alabe.com/tarot"
-        ),
-        TarotDeckPreset(
-            id = "alabe_astrolabe",
-            name = "Astrolabe Golden Hermetic Tarot",
-            description = "Astrolabe's sacred astrological synthesis pairing all 78 tarot keys with natal chart zodiac signs, planetary houses, and decans.",
-            sampleImageUrl = "https://upload.wikimedia.org/wikipedia/commons/d/de/Rider-Waite-Smith_Tarot_01_Magician.jpg",
-            source = "www.alabe.com/tarot",
-            author = "Astrolabe Esoteric Archives",
-            websiteUrl = "https://www.alabe.com/tarot"
-        ),
-        TarotDeckPreset(
-            id = "alabe_alchemical",
-            name = "Astrolabe Alchemical Renaissance Tarot",
-            description = "Astrolabe's historic Renaissance astromancy deck with classical Latin woodcuts and cosmological house significators.",
-            sampleImageUrl = "https://commons.wikimedia.org/wiki/Special:FilePath/Tarots_de_Marseille.jpg",
-            source = "www.alabe.com/tarot",
-            author = "Astrolabe Astromancy",
-            websiteUrl = "https://www.alabe.com/tarot"
-        ),
-        TarotDeckPreset(
-            id = "alabe_decanates",
-            name = "Astrolabe 36 Decanates Wheel Tarot",
-            description = "Esoteric astrological system mapping the 36 Minor Arcana decanates across the 12 zodiac constellations.",
-            sampleImageUrl = "https://upload.wikimedia.org/wikipedia/commons/d/de/Rider-Waite-Smith_Tarot_01_Magician.jpg",
-            source = "www.alabe.com/tarot",
-            author = "Astrolabe Divination",
-            websiteUrl = "https://www.alabe.com/tarot"
-        ),
-        TarotDeckPreset(
-            id = "github_metabismuth",
-            name = "metabismuth/tarot-json (GitHub)",
-            description = "High-resolution scanned Rider-Waite-Smith cards with full JSON open metadata hosted on GitHub.",
-            sampleImageUrl = "https://upload.wikimedia.org/wikipedia/commons/9/90/Rider-Waite-Smith_Tarot_00_Fool.jpg",
-            source = "GitHub",
-            author = "metabismuth",
-            repoUrl = "https://github.com/metabismuth/tarot-json"
-        ),
-        TarotDeckPreset(
-            id = "github_mixvlad",
-            name = "mixvlad/TarotCards Archive (GitHub)",
-            description = "Verified open-source archive of historic public-domain decks including Marseille, Sola Busca, and 1909 RWS.",
-            sampleImageUrl = "https://commons.wikimedia.org/wiki/Special:FilePath/Tarots_de_Marseille.jpg",
-            source = "GitHub",
-            author = "mixvlad",
-            repoUrl = "https://github.com/mixvlad/TarotCards"
-        ),
-        TarotDeckPreset(
-            id = "github_krates",
-            name = "krates98/tarotcardapi (GitHub)",
-            description = "Modern 78-card REST API asset repository with high-contrast card art and fortune-telling interpretations.",
-            sampleImageUrl = "https://upload.wikimedia.org/wikipedia/commons/d/de/Rider-Waite-Smith_Tarot_01_Magician.jpg",
-            source = "GitHub",
-            author = "krates98",
-            repoUrl = "https://github.com/krates98/tarotcardapi"
-        ),
-        TarotDeckPreset(
-            id = "github_luciellaes",
-            name = "luciellaes/rws-tarot-cc0 (GitHub)",
-            description = "Pure CC0 public-domain 300x527 scans of the complete 78-card Rider-Waite-Smith deck.",
-            sampleImageUrl = "https://upload.wikimedia.org/wikipedia/commons/9/90/Rider-Waite-Smith_Tarot_00_Fool.jpg",
-            source = "GitHub",
-            author = "luciellaes",
-            repoUrl = "https://github.com/luciellaes/rws-tarot-cc0"
-        ),
-        TarotDeckPreset(
-            id = "marseille",
-            name = "Tarot de Marseille (1760)",
-            description = "Historic Nicolas Conver woodblock archetype featuring bold primary colors and medieval imagery.",
-            sampleImageUrl = "https://commons.wikimedia.org/wiki/Special:FilePath/Tarots_de_Marseille.jpg",
-            source = "Built-in",
-            author = "Nicolas Conver"
-        ),
-        TarotDeckPreset(
-            id = "sola_busca",
-            name = "Sola Busca Renaissance (1491)",
-            description = "The world's earliest complete 78-card deck featuring Italian Renaissance alchemical engravings.",
-            sampleImageUrl = "https://commons.wikimedia.org/wiki/Special:FilePath/Sola_Busca_tarot_card_05.jpg",
-            source = "Built-in",
-            author = "Mattia Serrati"
-        ),
-        TarotDeckPreset(
-            id = "mystic_gold",
-            name = "Mystic Golden Dawn",
-            description = "Ornate golden borders, sacred geometry, and hermetic astrological decan correspondences.",
-            sampleImageUrl = "https://upload.wikimedia.org/wikipedia/commons/d/de/Rider-Waite-Smith_Tarot_01_Magician.jpg",
-            source = "Built-in",
-            author = "Hermetic Order of the Golden Dawn"
-        ),
-        TarotDeckPreset(
-            id = "visconti_sforza",
-            name = "Visconti-Sforza Pierpont Morgan (1451)",
-            description = "The oldest surviving luxury gold-leaf hand-painted tarot cards from Renaissance Milan.",
-            sampleImageUrl = "https://commons.wikimedia.org/wiki/Special:FilePath/Tarots_de_Marseille.jpg",
-            source = "Built-in",
-            author = "Bonifacio Bembo"
         )
     )
 

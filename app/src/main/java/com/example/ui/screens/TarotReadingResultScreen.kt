@@ -22,6 +22,7 @@ import coil.compose.AsyncImage
 import com.example.data.ReadingEntity
 import com.example.model.TarotCard
 import com.example.network.TarotImageRepository
+import com.example.network.TarotJsAlabeService
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -65,24 +66,17 @@ fun TarotReadingResultScreen(
         )
     }
 
-    // Synthesize chronological meaning sum up across all cards
+    // Synthesize chronological meaning sum up across all cards with Tarot.js & Alabe synthesis
     val synthesizedSummary = remember(cardsWithPositions) {
         val count = cardsWithPositions.size
         val elements = cardsWithPositions.map { it.second.first.element }.distinct()
         val uprightCount = cardsWithPositions.count { !it.second.second }
         val reversedCount = cardsWithPositions.count { it.second.second }
+        val spreadInsight = TarotJsAlabeService.getSpreadInterpretation(spreadType, cardsWithPositions.map { it.second.first.name })
         
         buildString {
-            append("Chronological Synthesis ($count Cards Drawn):\n\n")
-            append("• Flow & Progression: Your reading evolved through $count distinct stages, reflecting an active journey from initial foundational energies to current resolution.\n")
-            append("• Elemental Balance: Prominent elements include ${elements.joinToString(", ")}.\n")
-            append("• Orientation Balance: $uprightCount Upright, $reversedCount Reversed.\n\n")
-            append("Combined Core Meanings:\n")
-            cardsWithPositions.forEachIndexed { idx, (pos, pair) ->
-                val (card, rev) = pair
-                val orient = if (rev) "Reversed" else "Upright"
-                append("${idx + 1}. [$pos] ${card.name} ($orient): ${if (rev) card.reversedMeaning else card.uprightMeaning}\n")
-            }
+            append("$spreadInsight\n\n")
+            append("• Orientation Balance: $uprightCount Upright, $reversedCount Reversed across $count positions.\n")
         }
     }
 
@@ -131,14 +125,14 @@ fun TarotReadingResultScreen(
                             )
                             if (readingEnded && saved) {
                                 Badge(containerColor = MaterialTheme.colorScheme.primary) {
-                                    Text("Saved to Journal")
+                                    Text("Saved to Notes")
                                 }
                             }
                         }
 
                         Text(
                             text = if (readingEnded) 
-                                "All drawn cards have been collected chronologically and synthesized into a holistic reading summary below. This reading is now securely saved in your journal."
+                                "All drawn cards have been collected chronologically and synthesized into a holistic reading summary below. This reading is now securely saved in your notes."
                             else 
                                 "You can continue drawing new cards chronologically, tap any card image to view full card art, tap the card body for deep esoteric attributes, or end the reading to synthesize the complete meaning.",
                             style = MaterialTheme.typography.bodyMedium,
@@ -286,6 +280,14 @@ fun TarotReadingResultScreen(
                                 text = if (isReversed) card.reversedMeaning else card.uprightMeaning,
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f)
+                            )
+                            Spacer(modifier = Modifier.height(2.dp))
+                            val jsInsight = TarotJsAlabeService.getInsight(card.name)
+                            Text(
+                                text = "Tarot.js & Alabe: ${jsInsight.alabeMeaning}",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.secondary,
+                                fontWeight = FontWeight.Medium
                             )
                             Spacer(modifier = Modifier.height(2.dp))
                             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {

@@ -21,6 +21,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil.compose.AsyncImage
 import com.example.data.DeckManager
 import com.example.data.OracleDatabase
+import com.example.network.TarotImageRepository
 import com.example.ui.screens.*
 import com.example.ui.theme.MyApplicationTheme
 import kotlinx.coroutines.launch
@@ -33,6 +34,7 @@ class MainActivity : ComponentActivity() {
 
         // Initialize persistent settings, fonts, and account state
         DeckManager.initPreferences(applicationContext)
+        TarotImageRepository.init(applicationContext)
 
         val database = OracleDatabase.getDatabase(applicationContext)
         val readingDao = database.readingDao()
@@ -144,8 +146,8 @@ class MainActivity : ComponentActivity() {
                             NavigationBarItem(
                                 selected = currentTab == 5,
                                 onClick = { currentTab = 5 },
-                                icon = { Icon(Icons.Default.History, contentDescription = "Journal") },
-                                label = { Text("Journal") }
+                                icon = { Icon(Icons.Default.History, contentDescription = "Notes") },
+                                label = { Text("Notes") }
                             )
                         }
                     }

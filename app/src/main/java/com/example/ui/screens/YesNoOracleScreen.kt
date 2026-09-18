@@ -482,7 +482,7 @@ fun YesNoOracleScreen(
                                 containerColor = if (saved) MaterialTheme.colorScheme.surfaceVariant else MaterialTheme.colorScheme.primary
                             )
                         ) {
-                            Text(if (saved) "Saved to Journal ✓" else "Save Reading to Journal")
+                            Text(if (saved) "Saved to Notes ✓" else "Save Reading to Notes")
                         }
                     }
                 }

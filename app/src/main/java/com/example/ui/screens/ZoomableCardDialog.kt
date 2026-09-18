@@ -235,7 +235,7 @@ fun ZoomableCardDialog(
                     contentAlignment = Alignment.Center
                 ) {
                     AsyncImage(
-                        model = currentImageUrl,
+                        model = TarotImageRepository.getCardImageModel(cardName, deckId),
                         contentDescription = cardName,
                         modifier = Modifier
                             .fillMaxSize()

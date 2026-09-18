@@ -484,7 +484,7 @@ fun IChingScreen(
                         }
                     }
 
-                    // Reversal Toggle for Learning
+                    // Reversal Toggle
                     item {
                         Card(
                             modifier = Modifier.fillMaxWidth(),
@@ -501,12 +501,7 @@ fun IChingScreen(
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
                                     Column {
-                                        Text(
-                                            text = "Reversal Toggle for Learning",
-                                            style = MaterialTheme.typography.titleSmall,
-                                            fontWeight = FontWeight.Bold,
-                                            color = MaterialTheme.colorScheme.onSecondaryContainer
-                                        )
+                                        // Removed title
                                         Text(
                                             text = "Status: ${if (simpleDrawReversed) "Zōng Guà / Inverted (180°)" else "Upright Orientation"}",
                                             style = MaterialTheme.typography.bodySmall,
@@ -613,7 +608,7 @@ fun IChingScreen(
                                     ) {
                                         Icon(Icons.Default.BookmarkAdd, contentDescription = null, modifier = Modifier.size(18.dp))
                                         Spacer(modifier = Modifier.width(8.dp))
-                                        Text("Save Hexagram to Journal")
+                                        Text("Save Hexagram to Notes")
                                     }
                                 }
                             }

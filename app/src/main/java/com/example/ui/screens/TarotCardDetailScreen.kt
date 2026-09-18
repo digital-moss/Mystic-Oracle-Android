@@ -59,8 +59,8 @@ fun TarotCardDetailScreen(
 ) {
     BackHandler(onBack = onBack)
 
-    var symbologyTags by remember { mutableStateOf(card.symbology.toMutableList()) }
-    var commonMeaningsTags by remember { mutableStateOf(card.defaultTerms.toMutableList()) }
+    var symbologyTags by remember(card) { mutableStateOf(card.symbology.toMutableList()) }
+    var commonMeaningsTags by remember(card) { mutableStateOf(card.defaultTerms.toMutableList()) }
 
     var newSymbolInput by remember { mutableStateOf("") }
     var newMeaningInput by remember { mutableStateOf("") }
@@ -164,11 +164,13 @@ fun TarotCardDetailScreen(
                                 style = MaterialTheme.typography.titleSmall,
                                 fontWeight = FontWeight.Bold
                             )
-                            FilterChip(
-                                selected = isReversed,
-                                onClick = { isReversed = !isReversed },
-                                label = { Text(if (isReversed) "Set Upright" else "Reverse Card") }
-                            )
+                            TextButton(
+                                onClick = { isReversed = !isReversed }
+                            ) {
+                                Icon(Icons.Default.SwapHoriz, contentDescription = null, modifier = Modifier.size(16.dp))
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Text(if (isReversed) "Set Upright" else "Reverse")
+                            }
                         }
 
                         Box(
@@ -213,7 +215,7 @@ fun TarotCardDetailScreen(
                                 }
                             } else {
                                 AsyncImage(
-                                    model = currentImageUrl,
+                                    model = TarotImageRepository.getCardImageModel(card.name, currentDeckId),
                                     contentDescription = card.name,
                                     modifier = Modifier.fillMaxSize(),
                                     contentScale = ContentScale.Fit,

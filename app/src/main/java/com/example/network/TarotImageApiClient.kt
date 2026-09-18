@@ -74,6 +74,24 @@ object TarotImageRepository {
                 }
             }
         } catch (_: Exception) {}
+
+        // Copy images from rider_waite_tarot assets folder
+        try {
+            val targetDir = java.io.File(context.filesDir, "tarot_big_images")
+            if (!targetDir.exists() || targetDir.list().isNullOrEmpty()) {
+                targetDir.mkdirs()
+                val assetFiles = context.assets.list("rider_waite_tarot") ?: emptyArray()
+                for (fileName in assetFiles) {
+                    context.assets.open("rider_waite_tarot/$fileName").use { input ->
+                        java.io.File(targetDir, fileName).outputStream().use { output ->
+                            input.copyTo(output)
+                        }
+                    }
+                }
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
     }
 
     fun getCardPlaceholderRes(cardName: String): Int {
@@ -105,95 +123,95 @@ object TarotImageRepository {
         "Mystic Magician" to "https://upload.wikimedia.org/wikipedia/commons/d/de/Rider-Waite-Smith_Tarot_01_Magician.jpg"
     )
 
-    // Dedicated mapping for all 78 cards in Rider-Waite-Smith
+    // Dedicated mapping for all 78 cards in Rider-Waite-Smith using searge/tarot assets
     private val rwsCardFilenames = mapOf(
         // Major Arcana
-        "0. The Fool" to "Rider-Waite-Smith_Tarot_00_Fool.jpg",
-        "I. The Magician" to "Rider-Waite-Smith_Tarot_01_Magician.jpg",
-        "II. The High Priestess" to "Rider-Waite-Smith_Tarot_02_High_Priestess.jpg",
-        "III. The Empress" to "Rider-Waite-Smith_Tarot_03_Empress.jpg",
-        "IV. The Emperor" to "Rider-Waite-Smith_Tarot_04_Emperor.jpg",
-        "V. The Hierophant" to "Rider-Waite-Smith_Tarot_05_Hierophant.jpg",
-        "VI. The Lovers" to "Rider-Waite-Smith_Tarot_06_Lovers.jpg",
-        "VII. The Chariot" to "Rider-Waite-Smith_Tarot_07_Chariot.jpg",
-        "VIII. Strength" to "Rider-Waite-Smith_Tarot_08_Strength.jpg",
-        "IX. The Hermit" to "Rider-Waite-Smith_Tarot_09_Hermit.jpg",
-        "X. Wheel of Fortune" to "Rider-Waite-Smith_Tarot_10_Wheel_of_Fortune.jpg",
-        "XI. Justice" to "Rider-Waite-Smith_Tarot_11_Justice.jpg",
-        "XII. The Hanged Man" to "Rider-Waite-Smith_Tarot_12_Hanged_Man.jpg",
-        "XIII. Death" to "Rider-Waite-Smith_Tarot_13_Death.jpg",
-        "XIV. Temperance" to "Rider-Waite-Smith_Tarot_14_Temperance.jpg",
-        "XV. The Devil" to "Rider-Waite-Smith_Tarot_15_The_Devil.jpg",
-        "XVI. The Tower" to "Rider-Waite-Smith_Tarot_16_The_Tower.jpg",
-        "XVII. The Star" to "Rider-Waite-Smith_Tarot_17_The_Star.jpg",
-        "XVIII. The Moon" to "Rider-Waite-Smith_Tarot_18_The_Moon.jpg",
-        "XIX. The Sun" to "Rider-Waite-Smith_Tarot_19_The_Sun.jpg",
-        "XX. Judgement" to "Rider-Waite-Smith_Tarot_20_Judgement.jpg",
-        "XXI. The World" to "Rider-Waite-Smith_Tarot_21_World.jpg",
+        "0. The Fool" to "major_00_Fool.jpg",
+        "I. The Magician" to "major_01_Magician.jpg",
+        "II. The High Priestess" to "major_02_High_Priestess.jpg",
+        "III. The Empress" to "major_03_Empress.jpg",
+        "IV. The Emperor" to "major_04_Emperor.jpg",
+        "V. The Hierophant" to "major_05_Hierophant.jpg",
+        "VI. The Lovers" to "major_06_Lovers.jpg",
+        "VII. The Chariot" to "major_07_Chariot.jpg",
+        "VIII. Strength" to "major_08_Strength.jpg",
+        "IX. The Hermit" to "major_09_Hermit.jpg",
+        "X. Wheel of Fortune" to "major_10_Wheel_of_Fortune.jpg",
+        "XI. Justice" to "major_11_Justice.jpg",
+        "XII. The Hanged Man" to "major_12_Hanged_Man.jpg",
+        "XIII. Death" to "major_13_Death.jpg",
+        "XIV. Temperance" to "major_14_Temperance.jpg",
+        "XV. The Devil" to "major_15_Devil.jpg",
+        "XVI. The Tower" to "major_16_Tower.jpg",
+        "XVII. The Star" to "major_17_Star.jpg",
+        "XVIII. The Moon" to "major_18_Moon.jpg",
+        "XIX. The Sun" to "major_19_Sun.jpg",
+        "XX. Judgement" to "major_20_Judgement.jpg",
+        "XXI. The World" to "major_21_World.jpg",
 
         // Suit of Wands
-        "Ace of Wands" to "Wands01.jpg",
-        "Two of Wands" to "Wands02.jpg",
-        "Three of Wands" to "Wands03.jpg",
-        "Four of Wands" to "Wands04.jpg",
-        "Five of Wands" to "Wands05.jpg",
-        "Six of Wands" to "Wands06.jpg",
-        "Seven of Wands" to "Wands07.jpg",
-        "Eight of Wands" to "Wands08.jpg",
-        "Nine of Wands" to "Wands09.jpg",
-        "Ten of Wands" to "Wands10.jpg",
-        "Page of Wands" to "Wands11.jpg",
-        "Knight of Wands" to "Wands12.jpg",
-        "Queen of Wands" to "Wands13.jpg",
-        "King of Wands" to "Wands14.jpg",
+        "Ace of Wands" to "wands01.jpg",
+        "Two of Wands" to "wands02.jpg",
+        "Three of Wands" to "wands03.jpg",
+        "Four of Wands" to "wands04.jpg",
+        "Five of Wands" to "wands05.jpg",
+        "Six of Wands" to "wands06.jpg",
+        "Seven of Wands" to "wands07.jpg",
+        "Eight of Wands" to "wands08.jpg",
+        "Nine of Wands" to "wands09.jpg",
+        "Ten of Wands" to "wands10.jpg",
+        "Page of Wands" to "wands11.jpg",
+        "Knight of Wands" to "wands12.jpg",
+        "Queen of Wands" to "wands13.jpg",
+        "King of Wands" to "wands14.jpg",
 
         // Suit of Cups
-        "Ace of Cups" to "Cups01.jpg",
-        "Two of Cups" to "Cups02.jpg",
-        "Three of Cups" to "Cups03.jpg",
-        "Four of Cups" to "Cups04.jpg",
-        "Five of Cups" to "Cups05.jpg",
-        "Six of Cups" to "Cups06.jpg",
-        "Seven of Cups" to "Cups07.jpg",
-        "Eight of Cups" to "Cups08.jpg",
-        "Nine of Cups" to "Cups09.jpg",
-        "Ten of Cups" to "Cups10.jpg",
-        "Page of Cups" to "Cups11.jpg",
-        "Knight of Cups" to "Cups12.jpg",
-        "Queen of Cups" to "Cups13.jpg",
-        "King of Cups" to "Cups14.jpg",
+        "Ace of Cups" to "cups01.jpg",
+        "Two of Cups" to "cups02.jpg",
+        "Three of Cups" to "cups03.jpg",
+        "Four of Cups" to "cups04.jpg",
+        "Five of Cups" to "cups05.jpg",
+        "Six of Cups" to "cups06.jpg",
+        "Seven of Cups" to "cups07.jpg",
+        "Eight of Cups" to "cups08.jpg",
+        "Nine of Cups" to "cups09.jpg",
+        "Ten of Cups" to "cups10.jpg",
+        "Page of Cups" to "cups11.jpg",
+        "Knight of Cups" to "cups12.jpg",
+        "Queen of Cups" to "cups13.jpg",
+        "King of Cups" to "cups14.jpg",
 
         // Suit of Swords
-        "Ace of Swords" to "Swords01.jpg",
-        "Two of Swords" to "Swords02.jpg",
-        "Three of Swords" to "Swords03.jpg",
-        "Four of Swords" to "Swords04.jpg",
-        "Five of Swords" to "Swords05.jpg",
-        "Six of Swords" to "Swords06.jpg",
-        "Seven of Swords" to "Swords07.jpg",
-        "Eight of Swords" to "Swords08.jpg",
-        "Nine of Swords" to "Swords09.jpg",
-        "Ten of Swords" to "Swords10.jpg",
-        "Page of Swords" to "Swords11.jpg",
-        "Knight of Swords" to "Swords12.jpg",
-        "Queen of Swords" to "Swords13.jpg",
-        "King of Swords" to "Swords14.jpg",
+        "Ace of Swords" to "swords01.jpg",
+        "Two of Swords" to "swords02.jpg",
+        "Three of Swords" to "swords03.jpg",
+        "Four of Swords" to "swords04.jpg",
+        "Five of Swords" to "swords05.jpg",
+        "Six of Swords" to "swords06.jpg",
+        "Seven of Swords" to "swords07.jpg",
+        "Eight of Swords" to "swords08.jpg",
+        "Nine of Swords" to "swords09.jpg",
+        "Ten of Swords" to "swords10.jpg",
+        "Page of Swords" to "swords11.jpg",
+        "Knight of Swords" to "swords12.jpg",
+        "Queen of Swords" to "swords13.jpg",
+        "King of Swords" to "swords14.jpg",
 
         // Suit of Pentacles
-        "Ace of Pentacles" to "Pents01.jpg",
-        "Two of Pentacles" to "Pents02.jpg",
-        "Three of Pentacles" to "Pents03.jpg",
-        "Four of Pentacles" to "Pents04.jpg",
-        "Five of Pentacles" to "Pents05.jpg",
-        "Six of Pentacles" to "Pents06.jpg",
-        "Seven of Pentacles" to "Pents07.jpg",
-        "Eight of Pentacles" to "Pents08.jpg",
-        "Nine of Pentacles" to "Pents09.jpg",
-        "Ten of Pentacles" to "Pents10.jpg",
-        "Page of Pentacles" to "Pents11.jpg",
-        "Knight of Pentacles" to "Pents12.jpg",
-        "Queen of Pentacles" to "Pents13.jpg",
-        "King of Pentacles" to "Pents14.jpg"
+        "Ace of Pentacles" to "pents01.jpg",
+        "Two of Pentacles" to "pents02.jpg",
+        "Three of Pentacles" to "pents03.jpg",
+        "Four of Pentacles" to "pents04.jpg",
+        "Five of Pentacles" to "pents05.jpg",
+        "Six of Pentacles" to "pents06.jpg",
+        "Seven of Pentacles" to "pents07.jpg",
+        "Eight of Pentacles" to "pents08.jpg",
+        "Nine of Pentacles" to "pents09.jpg",
+        "Ten of Pentacles" to "pents10.jpg",
+        "Page of Pentacles" to "pents11.jpg",
+        "Knight of Pentacles" to "pents12.jpg",
+        "Queen of Pentacles" to "pents13.jpg",
+        "King of Pentacles" to "pents14.jpg"
     )
 
     // Direct High-Resolution CDN mirrors for instant loading
@@ -270,7 +288,18 @@ object TarotImageRepository {
     }
 
     fun getBaseCardImageUrl(cardName: String, deckId: String = DeckManager.currentDeckId): String {
-        // 1. Check custom overrides first (deck specific, then generic)
+        // 1. If it's the default deck, prioritize local files from the assets folder directly
+        if (deckId == "rider_waite") {
+            val exactFilename = rwsCardFilenames[cardName]
+            if (exactFilename != null) {
+                val localFile = java.io.File(appContext?.filesDir, "tarot_big_images/$exactFilename")
+                if (localFile.exists()) {
+                    return "file://${localFile.absolutePath}"
+                }
+            }
+        }
+
+        // 2. Otherwise check custom overrides first (deck specific, then generic)
         val customKey = "${deckId}___${cardName}"
         if (customOverrides.containsKey(customKey)) {
             return customOverrides[customKey]!!
@@ -283,7 +312,7 @@ object TarotImageRepository {
             return customOverrides[cardName]!!
         }
 
-        // 2. Special handling by Deck Preset
+        // 3. Special handling by Deck Preset
         when (deckId) {
             "marseille", "github_mixvlad" -> {
                 val cleanName = cardName.replace(Regex("^[IVXLCDM0-9]+[.\\s]+"), "").trim()
@@ -317,28 +346,14 @@ object TarotImageRepository {
             }
         }
 
-        // 3. Exact matching from the full 78 Rider-Waite-Smith dataset
+        // 4. Fallback for other decks matching from full dataset
         val exactFilename = rwsCardFilenames[cardName]
         if (exactFilename != null) {
-            for ((key, url) in directMajorUrls) {
-                if (cardName.contains(key, ignoreCase = true)) {
-                    return url
-                }
+            val localFile = java.io.File(appContext?.filesDir, "tarot_big_images/$exactFilename")
+            if (localFile.exists()) {
+                return "file://${localFile.absolutePath}"
             }
-            return "https://commons.wikimedia.org/wiki/Special:FilePath/$exactFilename"
-        }
-
-        // 4. Fuzzy fallback matching for variations in names
-        for ((nameKey, filename) in rwsCardFilenames) {
-            if (cardName.contains(nameKey, ignoreCase = true) || nameKey.contains(cardName, ignoreCase = true)) {
-                return "https://commons.wikimedia.org/wiki/Special:FilePath/$filename"
-            }
-        }
-
-        for ((key, url) in directMajorUrls) {
-            if (cardName.contains(key, ignoreCase = true)) {
-                return url
-            }
+            return "https://raw.githubusercontent.com/searge/tarot/master/assets/img/big/$exactFilename"
         }
 
         return "https://upload.wikimedia.org/wikipedia/commons/9/90/Rider-Waite-Smith_Tarot_00_Fool.jpg"
@@ -363,5 +378,17 @@ object TarotImageRepository {
         }
 
         return getBaseCardImageUrl(cardName, deckId)
+    }
+
+    fun getCardImageModel(cardName: String, deckId: String = DeckManager.currentDeckId): Any {
+        val url = getCardImageUrl(cardName, deckId)
+        if (url.startsWith("file://")) {
+            val path = url.removePrefix("file://")
+            val file = java.io.File(path)
+            if (file.exists()) {
+                return file
+            }
+        }
+        return url
     }
 }

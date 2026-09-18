@@ -421,7 +421,7 @@ fun RuneDeckScreen(
                         }
                     }
 
-                    // Reversal Toggle for Learning
+                    // Reversal Toggle
                     item {
                         Card(
                             modifier = Modifier.fillMaxWidth(),
@@ -438,12 +438,7 @@ fun RuneDeckScreen(
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
                                     Column {
-                                        Text(
-                                            text = "Reversal Toggle for Learning",
-                                            style = MaterialTheme.typography.titleSmall,
-                                            fontWeight = FontWeight.Bold,
-                                            color = MaterialTheme.colorScheme.onSecondaryContainer
-                                        )
+                                        // Removed title
                                         Text(
                                             text = "Status: ${if (simpleDrawReversed) "Merkstave / Inverted (180°)" else "Upright"}",
                                             style = MaterialTheme.typography.bodySmall,
@@ -538,7 +533,7 @@ fun RuneDeckScreen(
                                     ) {
                                         Icon(Icons.Default.BookmarkAdd, contentDescription = null, modifier = Modifier.size(18.dp))
                                         Spacer(modifier = Modifier.width(8.dp))
-                                        Text("Save Rune Draw to Journal")
+                                        Text("Save Rune Draw to Notes")
                                     }
                                 }
                             }

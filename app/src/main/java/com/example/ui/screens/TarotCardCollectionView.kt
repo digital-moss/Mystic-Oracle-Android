@@ -425,7 +425,7 @@ private fun ListCardItem(
                     .clickable { onImageClick() }
             ) {
                 AsyncImage(
-                    model = TarotImageRepository.getCardImageUrl(card.name),
+                    model = TarotImageRepository.getCardImageModel(card.name),
                     contentDescription = card.name,
                     modifier = Modifier.fillMaxSize(),
                     contentScale = ContentScale.Crop
@@ -545,7 +545,7 @@ private fun GridCardItem(
                     .clickable { onImageClick() }
             ) {
                 AsyncImage(
-                    model = TarotImageRepository.getCardImageUrl(card.name),
+                    model = TarotImageRepository.getCardImageModel(card.name),
                     contentDescription = card.name,
                     modifier = Modifier.fillMaxSize(),
                     contentScale = ContentScale.Crop
