@@ -1,5 +1,6 @@
 package com.example.ui.screens
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -14,10 +15,13 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import coil.compose.AsyncImage
 import com.example.data.ReadingEntity
 import com.example.model.TarotCard
+import com.example.network.TarotImageRepository
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -29,8 +33,37 @@ fun TarotReadingResultScreen(
     onContinueDrawing: () -> Unit,
     onBack: () -> Unit
 ) {
+    BackHandler(onBack = onBack)
+
     var readingEnded by remember { mutableStateOf(false) }
     var saved by remember { mutableStateOf(false) }
+    var fullCardDialogCard by remember { mutableStateOf<TarotCard?>(null) }
+
+    if (fullCardDialogCard != null) {
+        AlertDialog(
+            onDismissRequest = { fullCardDialogCard = null },
+            confirmButton = {
+                TextButton(onClick = { fullCardDialogCard = null }) {
+                    Text("Close")
+                }
+            },
+            text = {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(480.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    AsyncImage(
+                        model = TarotImageRepository.getCardImageUrl(fullCardDialogCard!!.name),
+                        contentDescription = fullCardDialogCard!!.name,
+                        modifier = Modifier.fillMaxSize(),
+                        contentScale = ContentScale.Fit
+                    )
+                }
+            }
+        )
+    }
 
     // Synthesize chronological meaning sum up across all cards
     val synthesizedSummary = remember(cardsWithPositions) {
@@ -107,7 +140,7 @@ fun TarotReadingResultScreen(
                             text = if (readingEnded) 
                                 "All drawn cards have been collected chronologically and synthesized into a holistic reading summary below. This reading is now securely saved in your journal."
                             else 
-                                "You can continue drawing new cards chronologically, tap any card for deep esoteric symbology, or end the reading to synthesize the complete meaning.",
+                                "You can continue drawing new cards chronologically, tap any card image to view full card art, tap the card body for deep esoteric attributes, or end the reading to synthesize the complete meaning.",
                             style = MaterialTheme.typography.bodyMedium,
                             color = if (readingEnded) MaterialTheme.colorScheme.onTertiaryContainer.copy(alpha = 0.9f) else MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.8f)
                         )
@@ -214,14 +247,15 @@ fun TarotReadingResultScreen(
                                 .width(70.dp)
                                 .height(100.dp)
                                 .clip(RoundedCornerShape(8.dp))
-                                .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.15f)),
+                                .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.15f))
+                                .clickable { fullCardDialogCard = card },
                             contentAlignment = Alignment.Center
                         ) {
-                            Text(
-                                text = "#${index + 1}",
-                                style = MaterialTheme.typography.titleLarge,
-                                fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.primary
+                            AsyncImage(
+                                model = TarotImageRepository.getCardImageUrl(card.name),
+                                contentDescription = card.name,
+                                modifier = Modifier.fillMaxSize(),
+                                contentScale = ContentScale.Crop
                             )
                         }
 

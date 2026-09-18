@@ -1,5 +1,7 @@
 package com.example.ui.screens
 
+import androidx.activity.compose.BackHandler
+import androidx.compose.animation.core.*
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -8,14 +10,13 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
@@ -50,6 +51,8 @@ fun TarotCardDetailScreen(
     card: TarotCard,
     onBack: () -> Unit
 ) {
+    BackHandler(onBack = onBack)
+
     var symbologyTags by remember { mutableStateOf(card.symbology.toMutableList()) }
     var commonMeaningsTags by remember { mutableStateOf(card.defaultTerms.toMutableList()) }
 
@@ -59,8 +62,57 @@ fun TarotCardDetailScreen(
     var showSymbolDialog by remember { mutableStateOf(false) }
     var showMeaningDialog by remember { mutableStateOf(false) }
     var showImageSwapDialog by remember { mutableStateOf(false) }
+    var showFullCardDialog by remember { mutableStateOf(false) }
     var customUrlInput by remember { mutableStateOf("") }
     var currentImageUrl by remember { mutableStateOf(TarotImageRepository.getCardImageUrl(card.name)) }
+
+    var isReversed by remember { mutableStateOf(false) }
+    var isFlipped by remember { mutableStateOf(false) }
+    val density = androidx.compose.ui.platform.LocalDensity.current.density
+
+    // Spring animation for reversal: flips a little past 180 degrees and settles back into place at 180 degrees
+    val rotationZ by animateFloatAsState(
+        targetValue = if (isReversed) 180f else 0f,
+        animationSpec = spring(
+            dampingRatio = Spring.DampingRatioMediumBouncy,
+            stiffness = Spring.StiffnessLow
+        ),
+        label = "reversalRotation"
+    )
+
+    val flipRotationY by animateFloatAsState(
+        targetValue = if (isFlipped) 180f else 0f,
+        animationSpec = tween(400, easing = FastOutSlowInEasing),
+        label = "cardFlip"
+    )
+
+    if (showFullCardDialog) {
+        AlertDialog(
+            onDismissRequest = { showFullCardDialog = false },
+            confirmButton = {
+                TextButton(onClick = { showFullCardDialog = false }) {
+                    Text("Close")
+                }
+            },
+            text = {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(500.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    AsyncImage(
+                        model = currentImageUrl,
+                        contentDescription = card.name,
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .graphicsLayer(rotationZ = rotationZ),
+                        contentScale = ContentScale.Fit
+                    )
+                }
+            }
+        )
+    }
 
     Scaffold(
         topBar = {
@@ -93,48 +145,94 @@ fun TarotCardDetailScreen(
                         verticalArrangement = Arrangement.spacedBy(12.dp),
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = "Orientation: ${if (isReversed) "Reversed" else "Upright"}",
+                                style = MaterialTheme.typography.titleSmall,
+                                fontWeight = FontWeight.Bold
+                            )
+                            FilterChip(
+                                selected = isReversed,
+                                onClick = { isReversed = !isReversed },
+                                label = { Text(if (isReversed) "Set Upright" else "Reverse Card") }
+                            )
+                        }
+
                         Box(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .height(320.dp)
+                                .height(380.dp)
                                 .clip(RoundedCornerShape(16.dp))
-                                .background(MaterialTheme.colorScheme.surface),
+                                .background(MaterialTheme.colorScheme.surface)
+                                .graphicsLayer(
+                                    rotationZ = rotationZ,
+                                    rotationY = flipRotationY,
+                                    cameraDistance = 12f * density
+                                )
+                                .clickable {
+                                    showFullCardDialog = true
+                                },
                             contentAlignment = Alignment.Center
                         ) {
-                            AsyncImage(
-                                model = currentImageUrl,
-                                contentDescription = card.name,
-                                modifier = Modifier.fillMaxSize(),
-                                contentScale = ContentScale.Crop,
-                                placeholder = painterResource(id = getCardImageRes(card)),
-                                error = painterResource(id = getCardImageRes(card))
-                            )
-                            Box(
-                                modifier = Modifier
-                                    .fillMaxSize()
-                                    .background(MaterialTheme.colorScheme.scrim.copy(alpha = 0.35f))
-                                    .padding(16.dp),
-                                contentAlignment = Alignment.BottomCenter
-                            ) {
-                                Column(
-                                    horizontalAlignment = Alignment.CenterHorizontally,
-                                    verticalArrangement = Arrangement.spacedBy(4.dp)
+                            if (flipRotationY > 90f) {
+                                // Card back view when flipped
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxSize()
+                                        .background(MaterialTheme.colorScheme.primary),
+                                    contentAlignment = Alignment.Center
                                 ) {
-                                    Badge(containerColor = MaterialTheme.colorScheme.primary) {
-                                        Text(text = "Ryder-Waite Classic • ${card.arcana}")
+                                    if (com.example.data.DeckManager.tarotBackArtUrl.isNotBlank()) {
+                                        AsyncImage(
+                                            model = com.example.data.DeckManager.tarotBackArtUrl,
+                                            contentDescription = "Card Back",
+                                            modifier = Modifier.fillMaxSize(),
+                                            contentScale = ContentScale.Crop
+                                        )
+                                    } else {
+                                        Text(
+                                            text = "Mystic Tarot\nTap to View",
+                                            style = MaterialTheme.typography.titleMedium,
+                                            color = MaterialTheme.colorScheme.onPrimary,
+                                            fontWeight = FontWeight.Bold
+                                        )
                                     }
-                                    Text(
-                                        text = card.name,
-                                        style = MaterialTheme.typography.titleLarge,
-                                        fontWeight = FontWeight.Bold,
-                                        color = androidx.compose.ui.graphics.Color.White
-                                    )
-                                    Text(
-                                        text = "Element: ${card.element} | Planet: ${card.planet} | Num: ${card.numerology}",
-                                        style = MaterialTheme.typography.labelSmall,
-                                        color = androidx.compose.ui.graphics.Color.White.copy(alpha = 0.9f)
-                                    )
                                 }
+                            } else {
+                                AsyncImage(
+                                    model = currentImageUrl,
+                                    contentDescription = card.name,
+                                    modifier = Modifier.fillMaxSize(),
+                                    contentScale = ContentScale.Fit,
+                                    placeholder = painterResource(id = getCardImageRes(card)),
+                                    error = painterResource(id = getCardImageRes(card))
+                                )
+                            }
+                        }
+
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            OutlinedButton(
+                                onClick = { isFlipped = !isFlipped }
+                            ) {
+                                Icon(Icons.Default.Refresh, contentDescription = null, modifier = Modifier.size(16.dp))
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Text(if (isFlipped) "Show Face" else "Show Back")
+                            }
+
+                            FilledTonalButton(
+                                onClick = { showFullCardDialog = true }
+                            ) {
+                                Icon(Icons.Default.Info, contentDescription = null, modifier = Modifier.size(16.dp))
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Text("Full Card View")
                             }
                         }
                         Text(
@@ -399,16 +497,16 @@ fun TarotCardDetailScreen(
                         modifier = Modifier.fillMaxWidth()
                     )
                     Text("Or choose a preset illustration:", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
-                    TarotImageRepository.presetCardImages.forEach { (presetName, presetUrl) ->
+                    for (preset in TarotImageRepository.presetCardImages) {
                         TextButton(
                             onClick = {
-                                TarotImageRepository.setCardImageUrl(card.name, presetUrl)
-                                currentImageUrl = presetUrl
+                                TarotImageRepository.setCardImageUrl(card.name, preset.second)
+                                currentImageUrl = preset.second
                                 showImageSwapDialog = false
                             },
                             modifier = Modifier.fillMaxWidth()
                         ) {
-                            Text(presetName)
+                            Text(preset.first)
                         }
                     }
                 }

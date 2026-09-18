@@ -16,6 +16,11 @@ class ExampleRobolectricTest {
   fun `read string from context`() {
     val context = ApplicationProvider.getApplicationContext<Context>()
     val appName = context.getString(R.string.app_name)
-    assertEquals("My Application", appName)
+    assertEquals("Mystic Oracle", appName)
+  }
+
+  @Test
+  fun `test 64 hexagrams complete`() {
+    assertEquals(64, com.example.model.IChingData.hexagrams.size)
   }
 }
