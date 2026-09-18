@@ -1,6 +1,7 @@
 package com.example.ui.screens
 
 import android.content.Intent
+import android.content.ActivityNotFoundException
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -22,6 +23,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.example.data.ReadingEntity
+import com.example.donations.DonationOptions
 import java.io.BufferedReader
 import java.io.InputStreamReader
 
@@ -47,6 +49,7 @@ fun SettingsScreen(
     // Export CSV launcher / status
     var exportStatus by remember { mutableStateOf("") }
     var importStatus by remember { mutableStateOf("") }
+    var donationStatus by remember { mutableStateOf("") }
 
     val exportLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.CreateDocument("text/csv")
@@ -119,6 +122,84 @@ fun SettingsScreen(
                 )
                 Badge(containerColor = MaterialTheme.colorScheme.primary) {
                     Text(text = if (isLoggedIn) "Account Active" else "Guest Seeker", modifier = Modifier.padding(4.dp))
+                }
+            }
+        }
+
+        item {
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer),
+                shape = RoundedCornerShape(16.dp)
+            ) {
+                Column(
+                    modifier = Modifier.padding(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Favorite,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.primary
+                        )
+                        Text(
+                            text = "Support Mystic Oracle",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+                    Text(
+                        text = "This app is free to use. If it helps your practice, you can support future improvements through any configured link.",
+                        style = MaterialTheme.typography.bodySmall
+                    )
+                    DonationOptions.all.forEach { option ->
+                        if (option.uri.isNotBlank()) {
+                            OutlinedButton(
+                                onClick = {
+                                    try {
+                                        context.startActivity(
+                                            Intent(Intent.ACTION_VIEW, Uri.parse(option.uri))
+                                        )
+                                        donationStatus = ""
+                                    } catch (_: ActivityNotFoundException) {
+                                        donationStatus = "No browser or payment app is available for this link."
+                                    }
+                                },
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.OpenInNew,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(18.dp)
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Column(horizontalAlignment = Alignment.Start) {
+                                    Text(option.name)
+                                    Text(
+                                        option.description,
+                                        style = MaterialTheme.typography.labelSmall
+                                    )
+                                }
+                            }
+                        }
+                    }
+                    if (DonationOptions.all.none { it.uri.isNotBlank() }) {
+                        Text(
+                            text = "Contribution links will appear here when the public support URLs are configured.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.8f)
+                        )
+                    }
+                    if (donationStatus.isNotBlank()) {
+                        Text(
+                            text = donationStatus,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.error
+                        )
+                    }
                 }
             }
         }
