@@ -4,21 +4,22 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Book
-import androidx.compose.material.icons.filled.Help
-import androidx.compose.material.icons.filled.History
-import androidx.compose.material.icons.filled.Home
-import androidx.compose.material.icons.filled.Psychology
-import androidx.compose.material.icons.filled.Settings
-import androidx.compose.material.icons.filled.Style
+import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import coil.compose.AsyncImage
+import com.example.data.DeckManager
 import com.example.data.OracleDatabase
 import com.example.ui.screens.*
 import com.example.ui.theme.MyApplicationTheme
@@ -30,13 +31,24 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
 
+        // Initialize persistent settings, fonts, and account state
+        DeckManager.initPreferences(applicationContext)
+
         val database = OracleDatabase.getDatabase(applicationContext)
         val readingDao = database.readingDao()
 
         setContent {
-            var currentTheme by remember { mutableStateOf("Mystic Purple") }
-            MyApplicationTheme(themeName = currentTheme) {
-                var currentTab by remember { mutableStateOf(0) }
+            var currentTheme by remember {
+                val prefs = applicationContext.getSharedPreferences("mystic_oracle_prefs", MODE_PRIVATE)
+                mutableStateOf(prefs.getString("app_theme", "Mystic Purple") ?: "Mystic Purple")
+            }
+
+            MyApplicationTheme(
+                themeName = currentTheme,
+                fontName = DeckManager.selectedFontName,
+                fontSizeScale = DeckManager.fontSizeScale
+            ) {
+                var currentTab by remember { mutableIntStateOf(0) }
                 val readings by readingDao.getAllReadings().collectAsStateWithLifecycle(initialValue = emptyList())
                 val coroutineScope = rememberCoroutineScope()
 
@@ -44,10 +56,50 @@ class MainActivity : ComponentActivity() {
                     modifier = Modifier.fillMaxSize(),
                     topBar = {
                         TopAppBar(
-                            title = { Text("Mystic Oracle Sanctuary") },
+                            title = {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.AutoAwesome,
+                                        contentDescription = null,
+                                        tint = MaterialTheme.colorScheme.primary,
+                                        modifier = Modifier.size(24.dp)
+                                    )
+                                    Text("Mystic Oracle Sanctuary")
+                                }
+                            },
                             actions = {
-                                IconButton(onClick = { currentTab = 6 }) {
-                                    Icon(Icons.Default.Settings, contentDescription = "Settings & Profile")
+                                if (DeckManager.isLoggedIn) {
+                                    Box(
+                                        modifier = Modifier
+                                            .padding(end = 8.dp)
+                                            .size(34.dp)
+                                            .clip(CircleShape)
+                                            .border(1.5.dp, MaterialTheme.colorScheme.primary, CircleShape)
+                                            .clickable { currentTab = 6 },
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        if (DeckManager.userPhotoUrl != null) {
+                                            AsyncImage(
+                                                model = DeckManager.userPhotoUrl,
+                                                contentDescription = "User Avatar",
+                                                modifier = Modifier.fillMaxSize()
+                                            )
+                                        } else {
+                                            Icon(
+                                                imageVector = Icons.Default.Person,
+                                                contentDescription = "Profile",
+                                                modifier = Modifier.size(20.dp),
+                                                tint = MaterialTheme.colorScheme.primary
+                                            )
+                                        }
+                                    }
+                                } else {
+                                    IconButton(onClick = { currentTab = 6 }) {
+                                        Icon(Icons.Default.Settings, contentDescription = "Settings & Profile")
+                                    }
                                 }
                             },
                             colors = TopAppBarDefaults.topAppBarColors(
@@ -149,7 +201,11 @@ class MainActivity : ComponentActivity() {
                             )
                             6 -> SettingsScreen(
                                 currentTheme = currentTheme,
-                                onThemeChanged = { currentTheme = it },
+                                onThemeChanged = { newTheme ->
+                                    currentTheme = newTheme
+                                    applicationContext.getSharedPreferences("mystic_oracle_prefs", MODE_PRIVATE)
+                                        .edit().putString("app_theme", newTheme).apply()
+                                },
                                 readings = readings,
                                 onImportReadings = { imported ->
                                     coroutineScope.launch {

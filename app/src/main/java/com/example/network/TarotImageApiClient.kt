@@ -35,7 +35,15 @@ interface WikimediaImageApi {
 
         val api: WikimediaImageApi by lazy {
             val logging = HttpLoggingInterceptor().apply { level = HttpLoggingInterceptor.Level.BASIC }
-            val client = OkHttpClient.Builder().addInterceptor(logging).build()
+            val client = OkHttpClient.Builder()
+                .addInterceptor { chain ->
+                    val request = chain.request().newBuilder()
+                        .header("User-Agent", "MysticOracle/2.0 (Android; seeker@mysticoracle.app)")
+                        .build()
+                    chain.proceed(request)
+                }
+                .addInterceptor(logging)
+                .build()
 
             Retrofit.Builder()
                 .baseUrl(BASE_URL)

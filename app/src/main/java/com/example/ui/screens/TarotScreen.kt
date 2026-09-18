@@ -36,11 +36,16 @@ import com.example.data.ReadingEntity
 import com.example.model.TarotCard
 import com.example.model.TarotData
 import com.example.network.TarotImageRepository
+import com.example.util.HapticUtil
 import com.example.util.ShakeDetector
 import coil.compose.AsyncImage
+import android.content.Intent
+import androidx.core.content.FileProvider
 import java.io.File
 import java.io.FileOutputStream
 import java.util.zip.ZipInputStream
+import java.util.zip.ZipOutputStream
+import java.util.zip.ZipEntry
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -64,24 +69,15 @@ fun TarotScreen(
     var importedDecksCount by remember { mutableStateOf(0) }
     var importStatusMessage by remember { mutableStateOf<String?>(null) }
 
-    val vibrator = remember { context.getSystemService(Context.VIBRATOR_SERVICE) as? Vibrator }
     fun triggerHapticFeedback() {
-        if (!DeckManager.hapticsEnabled || vibrator == null) return
-        val duration = when (DeckManager.shakeSensitivity) {
-            "Low" -> 80L
-            "High" -> 35L
-            else -> 55L
-        }
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            vibrator.vibrate(VibrationEffect.createOneShot(duration, VibrationEffect.DEFAULT_AMPLITUDE))
-        } else {
-            @Suppress("DEPRECATION")
-            vibrator.vibrate(duration)
-        }
+        HapticUtil.performHaptic(context)
     }
 
     // Shake to reshuffle for Simple Draw & Readings
-    DisposableEffect(Unit) {
+    DisposableEffect(DeckManager.shakeToShuffleEnabled) {
+        if (!DeckManager.shakeToShuffleEnabled) {
+            return@DisposableEffect onDispose {}
+        }
         val detector = ShakeDetector(context) {
             triggerHapticFeedback()
             simpleDrawCard = TarotData.cards.random()
@@ -129,41 +125,15 @@ fun TarotScreen(
         }
     }
 
-    // Full Card Image Dialog (Fully viewable when clicked on)
+    // Full Card Image Dialog (Interactive Zoomable, Pan, Download & Share)
     if (fullCardDialogCard != null) {
-        AlertDialog(
-            onDismissRequest = { fullCardDialogCard = null },
-            confirmButton = {
-                TextButton(onClick = { fullCardDialogCard = null }) {
-                    Text("Close")
-                }
-            },
-            title = {
-                Text(
-                    text = fullCardDialogCard!!.name,
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold
-                )
-            },
-            text = {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(480.dp),
-                    contentAlignment = Alignment.Center
-                ) {
-                    AsyncImage(
-                        model = TarotImageRepository.getCardImageUrl(fullCardDialogCard!!.name),
-                        contentDescription = fullCardDialogCard!!.name,
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .graphicsLayer(
-                                rotationZ = if (simpleDrawReversed && selectedTab == 0) 180f else 0f
-                            ),
-                        contentScale = ContentScale.Fit
-                    )
-                }
-            }
+        ZoomableCardDialog(
+            cardName = fullCardDialogCard!!.name,
+            imageUrl = TarotImageRepository.getCardImageUrl(fullCardDialogCard!!.name),
+            fallbackResId = getCardImageRes(fullCardDialogCard!!),
+            isReversedInitially = simpleDrawReversed && selectedTab == 0,
+            subtitle = "${fullCardDialogCard!!.arcana} Arcana • ${fullCardDialogCard!!.element}",
+            onDismiss = { fullCardDialogCard = null }
         )
     }
 
@@ -882,21 +852,67 @@ fun TarotScreen(
                                 verticalArrangement = Arrangement.spacedBy(12.dp)
                             ) {
                                 Text(
-                                    text = "Custom Deck Import (ZIP)",
+                                    text = "Custom Deck Import & Export (ZIP)",
                                     style = MaterialTheme.typography.titleMedium,
                                     fontWeight = FontWeight.Bold
                                 )
                                 Text(
-                                    text = "Import your own custom deck art pack in a single .zip file containing card images.",
+                                    text = "Import custom deck art packs or export your deck archives in a portable .zip file.",
                                     style = MaterialTheme.typography.bodySmall
                                 )
-                                Button(
-                                    onClick = { zipPickerLauncher.launch(arrayOf("application/zip", "application/x-zip-compressed")) },
-                                    modifier = Modifier.fillMaxWidth()
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
                                 ) {
-                                    Icon(Icons.Default.FolderZip, contentDescription = null)
-                                    Spacer(modifier = Modifier.width(8.dp))
-                                    Text("Import Deck (.zip)")
+                                    Button(
+                                        onClick = { zipPickerLauncher.launch(arrayOf("application/zip", "application/x-zip-compressed")) },
+                                        modifier = Modifier.weight(1f)
+                                    ) {
+                                        Icon(Icons.Default.FolderZip, contentDescription = null, modifier = Modifier.size(16.dp))
+                                        Spacer(modifier = Modifier.width(6.dp))
+                                        Text("Import ZIP")
+                                    }
+
+                                    OutlinedButton(
+                                        onClick = {
+                                            try {
+                                                val cacheDir = File(context.cacheDir, "exported_decks").apply { if (!exists()) mkdirs() }
+                                                val zipFile = File(cacheDir, "MysticTarot_Decks_${System.currentTimeMillis()}.zip")
+                                                val zos = ZipOutputStream(FileOutputStream(zipFile))
+                                                val decksDir = File(context.filesDir, "custom_decks")
+                                                if (decksDir.exists() && decksDir.listFiles()?.isNotEmpty() == true) {
+                                                    decksDir.walkTopDown().filter { it.isFile }.forEach { file ->
+                                                        val entryName = file.relativeTo(decksDir).path
+                                                        zos.putNextEntry(ZipEntry(entryName))
+                                                        file.inputStream().use { it.copyTo(zos) }
+                                                        zos.closeEntry()
+                                                    }
+                                                } else {
+                                                    zos.putNextEntry(ZipEntry("custom_deck_readme.txt"))
+                                                    zos.write("Mystic Oracle Custom Deck Archive\nPackage your 78 tarot cards here to import custom decks.".toByteArray())
+                                                    zos.closeEntry()
+                                                }
+                                                zos.close()
+
+                                                val uri = FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", zipFile)
+                                                val shareIntent = Intent(Intent.ACTION_SEND).apply {
+                                                    type = "application/zip"
+                                                    putExtra(Intent.EXTRA_STREAM, uri)
+                                                    putExtra(Intent.EXTRA_SUBJECT, "Exported Mystic Tarot Deck (.zip)")
+                                                    addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                                                }
+                                                context.startActivity(Intent.createChooser(shareIntent, "Export Decks (.zip)"))
+                                                importStatusMessage = "Deck archive exported successfully!"
+                                            } catch (e: Exception) {
+                                                importStatusMessage = "Export failed: ${e.localizedMessage}"
+                                            }
+                                        },
+                                        modifier = Modifier.weight(1f)
+                                    ) {
+                                        Icon(Icons.Default.Upload, contentDescription = null, modifier = Modifier.size(16.dp))
+                                        Spacer(modifier = Modifier.width(6.dp))
+                                        Text("Export ZIP")
+                                    }
                                 }
                                 if (importStatusMessage != null) {
                                     Text(

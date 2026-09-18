@@ -1,6 +1,9 @@
 package com.example.ui.screens
 
 import androidx.activity.compose.BackHandler
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.activity.result.PickVisualMediaRequest
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -18,6 +21,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -25,6 +29,8 @@ import com.example.R
 import com.example.model.TarotCard
 import coil.compose.AsyncImage
 import com.example.network.TarotImageRepository
+import com.example.util.ImageSaver
+import kotlinx.coroutines.launch
 
 fun getCardImageRes(card: TarotCard): Int {
     val name = card.name
@@ -68,7 +74,20 @@ fun TarotCardDetailScreen(
 
     var isReversed by remember { mutableStateOf(false) }
     var isFlipped by remember { mutableStateOf(false) }
+    var isSavingCard by remember { mutableStateOf(false) }
+    val context = LocalContext.current
+    val coroutineScope = rememberCoroutineScope()
     val density = androidx.compose.ui.platform.LocalDensity.current.density
+
+    val photoPickerLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.PickVisualMedia()
+    ) { uri ->
+        if (uri != null) {
+            val uriStr = uri.toString()
+            TarotImageRepository.setCardImageUrl(card.name, uriStr)
+            currentImageUrl = uriStr
+        }
+    }
 
     // Spring animation for reversal: flips a little past 180 degrees and settles back into place at 180 degrees
     val rotationZ by animateFloatAsState(
@@ -87,30 +106,13 @@ fun TarotCardDetailScreen(
     )
 
     if (showFullCardDialog) {
-        AlertDialog(
-            onDismissRequest = { showFullCardDialog = false },
-            confirmButton = {
-                TextButton(onClick = { showFullCardDialog = false }) {
-                    Text("Close")
-                }
-            },
-            text = {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(500.dp),
-                    contentAlignment = Alignment.Center
-                ) {
-                    AsyncImage(
-                        model = currentImageUrl,
-                        contentDescription = card.name,
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .graphicsLayer(rotationZ = rotationZ),
-                        contentScale = ContentScale.Fit
-                    )
-                }
-            }
+        ZoomableCardDialog(
+            cardName = card.name,
+            imageUrl = currentImageUrl,
+            fallbackResId = getCardImageRes(card),
+            isReversedInitially = isReversed,
+            subtitle = "${card.arcana} Arcana • ${card.element} • ${card.planet}",
+            onDismiss = { showFullCardDialog = false }
         )
     }
 
@@ -216,37 +218,96 @@ fun TarotCardDetailScreen(
 
                         Row(
                             modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             OutlinedButton(
-                                onClick = { isFlipped = !isFlipped }
+                                onClick = { isFlipped = !isFlipped },
+                                modifier = Modifier.weight(1f)
                             ) {
                                 Icon(Icons.Default.Refresh, contentDescription = null, modifier = Modifier.size(16.dp))
-                                Spacer(modifier = Modifier.width(6.dp))
-                                Text(if (isFlipped) "Show Face" else "Show Back")
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text(if (isFlipped) "Face" else "Back")
                             }
 
                             FilledTonalButton(
-                                onClick = { showFullCardDialog = true }
+                                onClick = { showFullCardDialog = true },
+                                modifier = Modifier.weight(1f)
                             ) {
-                                Icon(Icons.Default.Info, contentDescription = null, modifier = Modifier.size(16.dp))
-                                Spacer(modifier = Modifier.width(6.dp))
-                                Text("Full Card View")
+                                Icon(Icons.Default.ZoomIn, contentDescription = null, modifier = Modifier.size(16.dp))
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text("Zoom & Pan")
                             }
                         }
+
+                        // Download & Share Quick Actions
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            Button(
+                                onClick = {
+                                    if (!isSavingCard) {
+                                        isSavingCard = true
+                                        coroutineScope.launch {
+                                            ImageSaver.downloadCardImage(context, currentImageUrl, card.name, getCardImageRes(card))
+                                            isSavingCard = false
+                                        }
+                                    }
+                                },
+                                modifier = Modifier.weight(1f),
+                                enabled = !isSavingCard
+                            ) {
+                                Icon(Icons.Default.Download, contentDescription = null, modifier = Modifier.size(16.dp))
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text(if (isSavingCard) "Saving..." else "Download")
+                            }
+
+                            OutlinedButton(
+                                onClick = {
+                                    coroutineScope.launch {
+                                        ImageSaver.shareCardImage(context, currentImageUrl, card.name, getCardImageRes(card))
+                                    }
+                                },
+                                modifier = Modifier.weight(1f)
+                            ) {
+                                Icon(Icons.Default.Share, contentDescription = null, modifier = Modifier.size(16.dp))
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text("Share")
+                            }
+                        }
+
                         Text(
                             text = card.description,
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onPrimaryContainer
                         )
-                        OutlinedButton(
-                            onClick = { showImageSwapDialog = true },
-                            modifier = Modifier.fillMaxWidth()
+
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
-                            Icon(Icons.Default.Edit, contentDescription = null, modifier = Modifier.size(18.dp))
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Text("Swap Card Image (Custom URL / Preset)")
+                            OutlinedButton(
+                                onClick = {
+                                    photoPickerLauncher.launch(
+                                        PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
+                                    )
+                                },
+                                modifier = Modifier.weight(1f)
+                            ) {
+                                Icon(Icons.Default.AddPhotoAlternate, contentDescription = null, modifier = Modifier.size(16.dp))
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text("Import Art")
+                            }
+
+                            OutlinedButton(
+                                onClick = { showImageSwapDialog = true },
+                                modifier = Modifier.weight(1f)
+                            ) {
+                                Icon(Icons.Default.Edit, contentDescription = null, modifier = Modifier.size(16.dp))
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text("Presets/URL")
+                            }
                         }
                     }
                 }

@@ -5,25 +5,15 @@ import android.hardware.Sensor
 import android.hardware.SensorEvent
 import android.hardware.SensorEventListener
 import android.hardware.SensorManager
-import android.os.VibrationEffect
-import android.os.Vibrator
-import android.os.VibratorManager
 import com.example.data.DeckManager
 import kotlin.math.sqrt
 
 class ShakeDetector(
-    context: Context,
+    private val context: Context,
     private val onShake: () -> Unit
 ) : SensorEventListener {
     private val sensorManager = context.getSystemService(Context.SENSOR_SERVICE) as SensorManager
     private val accelerometer = sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER)
-    private val vibrator = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S) {
-        val vm = context.getSystemService(Context.VIBRATOR_MANAGER_SERVICE) as VibratorManager
-        vm.defaultVibrator
-    } else {
-        @Suppress("DEPRECATION")
-        context.getSystemService(Context.VIBRATOR_SERVICE) as Vibrator
-    }
 
     private var lastShakeTime = 0L
 
@@ -60,16 +50,7 @@ class ShakeDetector(
             val now = System.currentTimeMillis()
             if (now - lastShakeTime > 1000) { // Cooldown 1 second
                 lastShakeTime = now
-                if (DeckManager.hapticsEnabled) {
-                    try {
-                        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
-                            vibrator.vibrate(VibrationEffect.createOneShot(100, VibrationEffect.DEFAULT_AMPLITUDE))
-                        } else {
-                            @Suppress("DEPRECATION")
-                            vibrator.vibrate(100)
-                        }
-                    } catch (_: Exception) {}
-                }
+                HapticUtil.performHaptic(context, 100L)
                 onShake()
             }
         }
@@ -77,3 +58,4 @@ class ShakeDetector(
 
     override fun onAccuracyChanged(sensor: Sensor?, accuracy: Int) {}
 }
+
