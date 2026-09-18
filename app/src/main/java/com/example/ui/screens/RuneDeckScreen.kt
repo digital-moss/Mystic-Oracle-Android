@@ -32,6 +32,24 @@ fun RuneDeckScreen(
     var activeSpread by remember { mutableStateOf<List<Rune>?>(null) }
     var spreadType by remember { mutableStateOf("Single Rune") }
 
+    var sessionKey by remember { mutableStateOf(System.currentTimeMillis()) }
+
+    LaunchedEffect(Unit) {
+        while (true) {
+            kotlinx.coroutines.delay(120_000) // 2 minutes
+            sessionKey = System.currentTimeMillis()
+            activeSpread = listOf(RuneData.runes.random())
+            spreadType = "Refreshed Rune Draw"
+        }
+    }
+
+    LaunchedEffect(sessionKey) {
+        if (activeSpread == null) {
+            activeSpread = listOf(RuneData.runes.random())
+            spreadType = "Initial Rune Draw"
+        }
+    }
+
     Column(
         modifier = Modifier
             .fillMaxSize()

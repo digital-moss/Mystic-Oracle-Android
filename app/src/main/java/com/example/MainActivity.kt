@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Book
+import androidx.compose.material.icons.filled.Help
 import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Psychology
@@ -24,6 +25,7 @@ import com.example.ui.theme.MyApplicationTheme
 import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {
+    @OptIn(ExperimentalMaterial3Api::class)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
@@ -32,13 +34,29 @@ class MainActivity : ComponentActivity() {
         val readingDao = database.readingDao()
 
         setContent {
-            MyApplicationTheme {
+            var currentTheme by remember { mutableStateOf("Mystic Purple") }
+            MyApplicationTheme(themeName = currentTheme) {
                 var currentTab by remember { mutableStateOf(0) }
                 val readings by readingDao.getAllReadings().collectAsStateWithLifecycle(initialValue = emptyList())
                 val coroutineScope = rememberCoroutineScope()
 
                 Scaffold(
                     modifier = Modifier.fillMaxSize(),
+                    topBar = {
+                        TopAppBar(
+                            title = { Text("Mystic Oracle Sanctuary") },
+                            actions = {
+                                IconButton(onClick = { currentTab = 6 }) {
+                                    Icon(Icons.Default.Settings, contentDescription = "Settings & Profile")
+                                }
+                            },
+                            colors = TopAppBarDefaults.topAppBarColors(
+                                containerColor = MaterialTheme.colorScheme.surfaceVariant,
+                                titleContentColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                                actionIconContentColor = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        )
+                    },
                     bottomBar = {
                         NavigationBar {
                             NavigationBarItem(
@@ -68,14 +86,14 @@ class MainActivity : ComponentActivity() {
                             NavigationBarItem(
                                 selected = currentTab == 4,
                                 onClick = { currentTab = 4 },
-                                icon = { Icon(Icons.Default.History, contentDescription = "Journal") },
-                                label = { Text("Journal") }
+                                icon = { Icon(Icons.Default.Help, contentDescription = "Yes/No Oracle") },
+                                label = { Text("Yes/No") }
                             )
                             NavigationBarItem(
                                 selected = currentTab == 5,
                                 onClick = { currentTab = 5 },
-                                icon = { Icon(Icons.Default.Settings, contentDescription = "Settings") },
-                                label = { Text("Settings") }
+                                icon = { Icon(Icons.Default.History, contentDescription = "Journal") },
+                                label = { Text("Journal") }
                             )
                         }
                     }
@@ -86,7 +104,7 @@ class MainActivity : ComponentActivity() {
                                 onNavigateToRunes = { currentTab = 1 },
                                 onNavigateToIChing = { currentTab = 2 },
                                 onNavigateToTarot = { currentTab = 3 },
-                                onNavigateToHistory = { currentTab = 4 }
+                                onNavigateToHistory = { currentTab = 5 }
                             )
                             1 -> RuneDeckScreen(
                                 onSaveReading = { reading ->
@@ -109,7 +127,14 @@ class MainActivity : ComponentActivity() {
                                     }
                                 }
                             )
-                            4 -> HistoryScreen(
+                            4 -> YesNoOracleScreen(
+                                onSaveReading = { reading ->
+                                    coroutineScope.launch {
+                                        readingDao.insertReading(reading)
+                                    }
+                                }
+                            )
+                            5 -> HistoryScreen(
                                 readings = readings,
                                 onDeleteReading = { id ->
                                     coroutineScope.launch {
@@ -122,7 +147,16 @@ class MainActivity : ComponentActivity() {
                                     }
                                 }
                             )
-                            5 -> SettingsScreen()
+                            6 -> SettingsScreen(
+                                currentTheme = currentTheme,
+                                onThemeChanged = { currentTheme = it },
+                                readings = readings,
+                                onImportReadings = { imported ->
+                                    coroutineScope.launch {
+                                        imported.forEach { readingDao.insertReading(it) }
+                                    }
+                                }
+                            )
                         }
                     }
                 }

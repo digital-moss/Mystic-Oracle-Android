@@ -32,6 +32,24 @@ fun IChingScreen(
     var castedHexagram by remember { mutableStateOf<Hexagram?>(null) }
     var castedLines by remember { mutableStateOf<List<Int>>(emptyList()) }
 
+    var sessionKey by remember { mutableStateOf(System.currentTimeMillis()) }
+
+    LaunchedEffect(Unit) {
+        while (true) {
+            kotlinx.coroutines.delay(120_000) // 2 minutes
+            sessionKey = System.currentTimeMillis()
+            castedHexagram = IChingData.hexagrams.random()
+            castedLines = (1..6).map { (6..9).random() }
+        }
+    }
+
+    LaunchedEffect(sessionKey) {
+        if (castedHexagram == null) {
+            castedHexagram = IChingData.hexagrams.random()
+            castedLines = (1..6).map { (6..9).random() }
+        }
+    }
+
     Column(
         modifier = Modifier
             .fillMaxSize()

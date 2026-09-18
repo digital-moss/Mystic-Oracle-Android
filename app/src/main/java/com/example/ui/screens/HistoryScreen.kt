@@ -79,7 +79,12 @@ fun HistoryScreen(
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
                                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
-                                    Badge(containerColor = if (reading.type == "RUNE") MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.secondary) {
+                                    Badge(containerColor = when(reading.type) {
+                                        "TAROT" -> MaterialTheme.colorScheme.primary
+                                        "RUNE" -> MaterialTheme.colorScheme.secondary
+                                        "ICHING" -> MaterialTheme.colorScheme.tertiary
+                                        else -> MaterialTheme.colorScheme.secondaryContainer
+                                    }) {
                                         Text(text = reading.type)
                                     }
                                     Text(

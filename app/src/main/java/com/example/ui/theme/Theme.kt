@@ -12,19 +12,19 @@ import androidx.compose.ui.platform.LocalContext
 
 @Composable
 fun MyApplicationTheme(
-  darkTheme: Boolean = true, // Default to mystical dark theme
-  dynamicColor: Boolean = false,
-  content: @Composable () -> Unit,
+    themeName: String = "Mystic Purple",
+    content: @Composable () -> Unit,
 ) {
-  val colorScheme =
-    when {
-      dynamicColor && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S -> {
-        val context = LocalContext.current
-        if (darkTheme) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
-      }
-      darkTheme -> DarkColorScheme
-      else -> LightColorScheme
+    val colorScheme = when (themeName) {
+        "Emerald Forest" -> EmeraldColorScheme
+        "Midnight Velvet" -> VelvetColorScheme
+        "Solar Gold" -> SolarColorScheme
+        else -> DarkColorScheme
     }
 
-  MaterialTheme(colorScheme = colorScheme, typography = Typography, content = content)
+    MaterialTheme(
+        colorScheme = colorScheme,
+        typography = Typography,
+        content = content
+    )
 }
