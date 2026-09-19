@@ -5,6 +5,8 @@ import com.example.R
 import com.example.data.CardAlignmentManager
 import com.example.data.DeckManager
 import com.example.model.TarotCard
+import com.example.model.TarotData
+import com.example.tarot.BundledTarotDecks
 import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor
 import retrofit2.Retrofit
@@ -75,23 +77,10 @@ object TarotImageRepository {
             }
         } catch (_: Exception) {}
 
-        // Copy images from rider_waite_tarot assets folder
-        try {
-            val targetDir = java.io.File(context.filesDir, "tarot_big_images")
-            if (!targetDir.exists() || targetDir.list().isNullOrEmpty()) {
-                targetDir.mkdirs()
-                val assetFiles = context.assets.list("rider_waite_tarot") ?: emptyArray()
-                for (fileName in assetFiles) {
-                    context.assets.open("rider_waite_tarot/$fileName").use { input ->
-                        java.io.File(targetDir, fileName).outputStream().use { output ->
-                            input.copyTo(output)
-                        }
-                    }
-                }
-            }
-        } catch (e: Exception) {
-            e.printStackTrace()
-        }
+        BundledTarotDecks.discover(context)
+            .map { it.id }
+            .plus("hermetic_tarot")
+            .forEach { deckId -> BundledTarotDecks.ensureDeckExtracted(context, deckId) }
     }
 
     fun getCardPlaceholderRes(cardName: String): Int {
@@ -288,14 +277,11 @@ object TarotImageRepository {
     }
 
     fun getBaseCardImageUrl(cardName: String, deckId: String = DeckManager.currentDeckId): String {
-        // 1. If it's the default deck, prioritize local files from the assets folder directly
-        if (deckId == "rider_waite") {
-            val exactFilename = rwsCardFilenames[cardName]
-            if (exactFilename != null) {
-                val localFile = java.io.File(appContext?.filesDir, "tarot_big_images/$exactFilename")
-                if (localFile.exists()) {
-                    return "file://${localFile.absolutePath}"
-                }
+        // Every built-in deck resolves to its own bundled asset directory first.
+        appContext?.let { context ->
+            TarotData.cards.firstOrNull { it.name == cardName }?.let { card ->
+                BundledTarotDecks.cardImageFile(context, deckId, card)
+                    ?.let { return "file://${it.absolutePath}" }
             }
         }
 
@@ -312,7 +298,7 @@ object TarotImageRepository {
             return customOverrides[cardName]!!
         }
 
-        // 3. Special handling by Deck Preset
+        // 3. Special handling by remote deck presets
         when (deckId) {
             "marseille", "github_mixvlad" -> {
                 val cleanName = cardName.replace(Regex("^[IVXLCDM0-9]+[.\\s]+"), "").trim()
@@ -322,18 +308,18 @@ object TarotImageRepository {
                 val cleanName = cardName.replace(Regex("^[IVXLCDM0-9]+[.\\s]+"), "").trim()
                 return "https://commons.wikimedia.org/wiki/Special:FilePath/Sola_Busca_tarot_card_${cleanName.replace(" ", "_")}.jpg"
             }
-            "mystic_gold", "alabe_astrolabe", "alabe_decanates" -> {
+            "mystic_gold", "astrolabe", "decanates" -> {
                 for ((key, url) in directMajorUrls) {
                     if (cardName.contains(key, ignoreCase = true)) {
                         return url
                     }
                 }
             }
-            "alabe_alchemical", "visconti_sforza" -> {
+            "alchemical", "visconti_sforza" -> {
                 val cleanName = cardName.replace(Regex("^[IVXLCDM0-9]+[.\\s]+"), "").trim()
                 return "https://commons.wikimedia.org/wiki/Special:FilePath/Tarots_de_Marseille.jpg"
             }
-            "alabe_albano", "github_metabismuth", "github_luciellaes", "github_krates" -> {
+            "albano", "github_metabismuth", "github_luciellaes", "github_krates" -> {
                 val exactFilename = rwsCardFilenames[cardName]
                 if (exactFilename != null) {
                     for ((key, url) in directMajorUrls) {

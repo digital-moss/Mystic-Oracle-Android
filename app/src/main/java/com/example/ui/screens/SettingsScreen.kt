@@ -87,8 +87,6 @@ fun SettingsScreen(
     var importStatus by remember { mutableStateOf("") }
     var fontImportStatus by remember { mutableStateOf<String?>(null) }
     var deckZipStatus by remember { mutableStateOf<String?>(null) }
-    var deckSearchQuery by remember { mutableStateOf("") }
-    var deckSourceFilter by remember { mutableStateOf("All") }
     var donationStatus by remember { mutableStateOf("") }
     var driveSyncStatus by remember { mutableStateOf(DeckManager.syncStatusMessage) }
 
@@ -756,7 +754,7 @@ fun SettingsScreen(
             }
         }
 
-        // 6. Tarot Deck Selection (alabe.com, GitHub & Historic)
+        // 6. Tarot Deck Selection
         item {
             Card(
                 modifier = Modifier.fillMaxWidth(),
@@ -783,48 +781,8 @@ fun SettingsScreen(
                         }
                     }
 
-                    // Search input
-                    OutlinedTextField(
-                        value = deckSearchQuery,
-                        onValueChange = { deckSearchQuery = it },
-                        placeholder = { Text("Filter decks (alabe.com, GitHub...)") },
-                        leadingIcon = { Icon(Icons.Default.Search, contentDescription = null, modifier = Modifier.size(18.dp)) },
-                        trailingIcon = {
-                            if (deckSearchQuery.isNotEmpty()) {
-                                IconButton(onClick = { deckSearchQuery = "" }) {
-                                    Icon(Icons.Default.Close, contentDescription = "Clear", modifier = Modifier.size(16.dp))
-                                }
-                            }
-                        },
-                        singleLine = true,
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(12.dp)
-                    )
-
-                    // Source Filter Chips
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .horizontalScroll(rememberScrollState()),
-                        horizontalArrangement = Arrangement.spacedBy(6.dp)
-                    ) {
-                        listOf("All", "alabe.com/tarot", "GitHub", "Built-in", "Custom").forEach { filter ->
-                            val isSelected = deckSourceFilter.equals(filter, ignoreCase = true)
-                            FilterChip(
-                                selected = isSelected,
-                                onClick = { deckSourceFilter = if (isSelected && filter != "All") "All" else filter },
-                                label = { Text(filter, fontSize = 11.sp) },
-                                shape = RoundedCornerShape(10.dp)
-                            )
-                        }
-                    }
-
-                    val filteredDecks = remember(deckSearchQuery, deckSourceFilter, DeckManager.availableDecks) {
-                        DeckManager.searchDecks(deckSearchQuery, deckSourceFilter)
-                    }
-
                     Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                        filteredDecks.forEach { deck ->
+                        DeckManager.availableDecks.forEach { deck ->
                             val isSelected = DeckManager.currentDeckId == deck.id
                             Row(
                                 modifier = Modifier
@@ -845,7 +803,7 @@ fun SettingsScreen(
                                     ) {
                                         Text(deck.name, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodyMedium)
                                         val (badgeColor, badgeText) = when {
-                                            deck.source.contains("alabe", true) -> Color(0xFF7B1FA2) to "alabe.com"
+                                            deck.source.contains("built-in", true) -> Color(0xFF7B1FA2) to "Built-in"
                                             deck.source.contains("github", true) -> Color(0xFF0288D1) to "GitHub"
                                             deck.isCustom -> Color(0xFF388E3C) to "Custom"
                                             else -> Color(0xFFE65100) to "Historic"
