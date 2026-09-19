@@ -756,7 +756,7 @@ fun SettingsScreen(
             }
         }
 
-        // 6. Tarot Deck Selection (alabe.com, GitHub & Historic)
+        // 6. Tarot Deck Selection
         item {
             Card(
                 modifier = Modifier.fillMaxWidth(),
@@ -787,7 +787,7 @@ fun SettingsScreen(
                     OutlinedTextField(
                         value = deckSearchQuery,
                         onValueChange = { deckSearchQuery = it },
-                        placeholder = { Text("Filter decks (alabe.com, GitHub...)") },
+                        placeholder = { Text("Filter decks (GitHub, built-in...)") },
                         leadingIcon = { Icon(Icons.Default.Search, contentDescription = null, modifier = Modifier.size(18.dp)) },
                         trailingIcon = {
                             if (deckSearchQuery.isNotEmpty()) {
@@ -808,7 +808,7 @@ fun SettingsScreen(
                             .horizontalScroll(rememberScrollState()),
                         horizontalArrangement = Arrangement.spacedBy(6.dp)
                     ) {
-                        listOf("All", "alabe.com/tarot", "GitHub", "Built-in", "Custom").forEach { filter ->
+                        listOf("All", "GitHub", "Built-in", "Custom").forEach { filter ->
                             val isSelected = deckSourceFilter.equals(filter, ignoreCase = true)
                             FilterChip(
                                 selected = isSelected,
@@ -845,7 +845,7 @@ fun SettingsScreen(
                                     ) {
                                         Text(deck.name, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodyMedium)
                                         val (badgeColor, badgeText) = when {
-                                            deck.source.contains("alabe", true) -> Color(0xFF7B1FA2) to "alabe.com"
+                                            deck.source.contains("built-in", true) -> Color(0xFF7B1FA2) to "Built-in"
                                             deck.source.contains("github", true) -> Color(0xFF0288D1) to "GitHub"
                                             deck.isCustom -> Color(0xFF388E3C) to "Custom"
                                             else -> Color(0xFFE65100) to "Historic"

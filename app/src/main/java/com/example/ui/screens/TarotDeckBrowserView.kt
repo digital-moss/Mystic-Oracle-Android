@@ -101,7 +101,7 @@ fun TarotDeckBrowserView(
     }
 
     val sourceFilters = remember {
-        listOf("All", "alabe.com/tarot", "GitHub Repos", "Historical", "My Custom")
+        listOf("All", "GitHub Repos", "Historical", "My Custom")
     }
 
     val displayedDecks = remember(searchQuery, selectedSourceFilter, DeckManager.availableDecks) {
@@ -121,7 +121,7 @@ fun TarotDeckBrowserView(
         OutlinedTextField(
             value = searchQuery,
             onValueChange = { searchQuery = it },
-            placeholder = { Text("Search decks: GitHub, alabe.com, historic...") },
+            placeholder = { Text("Search decks: GitHub, historic, custom...") },
             leadingIcon = {
                 Icon(
                     imageVector = Icons.Default.Search,
@@ -166,7 +166,6 @@ fun TarotDeckBrowserView(
             sourceFilters.forEach { filter ->
                 val isSelected = selectedSourceFilter.equals(filter, ignoreCase = true)
                 val icon = when (filter) {
-                    "alabe.com/tarot" -> "🔮"
                     "GitHub Repos" -> "🐙"
                     "Historical" -> "🏛️"
                     "My Custom" -> "📂"
@@ -359,7 +358,7 @@ fun TarotDeckBrowserView(
                                 fontWeight = FontWeight.Bold
                             )
                             Text(
-                                text = "Try searching 'alabe', 'github', or clearing your query.",
+                                text = "Try searching 'github' or clearing your query.",
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
@@ -395,7 +394,7 @@ fun TarotDeckBrowserView(
         }
     }
 
-    // Dialog for Importing Custom Decks from GitHub or www.alabe.com/tarot
+    // Dialog for importing custom decks from a repository or source URL.
     if (showImportDialog) {
         ImportDeckDialog(
             onDismiss = { showImportDialog = false },
@@ -405,7 +404,7 @@ fun TarotDeckBrowserView(
                     description = desc,
                     source = source,
                     repoUrl = if (source.contains("github", true)) url else null,
-                    websiteUrl = if (source.contains("alabe", true) || url.contains("alabe", true)) url else null,
+                    websiteUrl = if (!source.contains("github", true)) url else null,
                     context = context
                 )
                 showImportDialog = false
@@ -498,7 +497,7 @@ private fun DeckCardItem(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     val (badgeText, badgeColor) = when {
-                        deck.source.contains("alabe", true) -> "www.alabe.com/tarot" to Color(0xFF7B1FA2)
+                        deck.source.contains("Built-in", true) -> "Bundled asset" to Color(0xFF7B1FA2)
                         deck.source.contains("github", true) -> "GitHub Repo" to Color(0xFF0288D1)
                         deck.isCustom -> "Custom Deck" to Color(0xFF388E3C)
                         else -> "Historical" to Color(0xFFE65100)
@@ -564,7 +563,7 @@ private fun DeckCardItem(
                                 modifier = Modifier.size(14.dp)
                             )
                             Spacer(modifier = Modifier.width(4.dp))
-                            Text("alabe.com", fontSize = 11.sp)
+                            Text("Website", fontSize = 11.sp)
                         }
                     }
 
@@ -630,7 +629,7 @@ private fun ImportDeckDialog(
                 verticalArrangement = Arrangement.spacedBy(10.dp)
             ) {
                 Text(
-                    text = "Import from GitHub repositories or select from online archives at www.alabe.com/tarot.",
+                    text = "Import from a GitHub repository or another public source URL.",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -651,11 +650,11 @@ private fun ImportDeckDialog(
                     SuggestionChip(
                         onClick = {
                             deckName = "Astrolabe Albano-Waite"
-                            deckDesc = "Astrolabe vibrant colorized tarot deck from alabe.com with astrological decanate associations."
-                            deckSource = "www.alabe.com/tarot"
-                            deckUrl = "https://www.alabe.com/tarot"
+                            deckDesc = "Colorized tarot deck with astrological decanate associations."
+                            deckSource = "Online archive"
+                            deckUrl = ""
                         },
-                        label = { Text("alabe.com/tarot", fontSize = 11.sp) }
+                        label = { Text("Online archive", fontSize = 11.sp) }
                     )
                     SuggestionChip(
                         onClick = {
@@ -690,14 +689,14 @@ private fun ImportDeckDialog(
                     value = deckUrl,
                     onValueChange = {
                         deckUrl = it
-                        if (it.contains("alabe", true)) {
-                            deckSource = "www.alabe.com/tarot"
-                        } else if (it.contains("github", true)) {
+                        if (it.contains("github", true)) {
                             deckSource = "GitHub"
+                        } else if (it.isNotBlank()) {
+                            deckSource = "Online archive"
                         }
                     },
                     label = { Text("GitHub Repo / Source URL") },
-                    placeholder = { Text("e.g. https://github.com/owner/repo or https://www.alabe.com/tarot") },
+                    placeholder = { Text("e.g. https://github.com/owner/repo or another source URL") },
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth()
                 )

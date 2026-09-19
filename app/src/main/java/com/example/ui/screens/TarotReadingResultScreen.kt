@@ -22,7 +22,7 @@ import coil.compose.AsyncImage
 import com.example.data.ReadingEntity
 import com.example.model.TarotCard
 import com.example.network.TarotImageRepository
-import com.example.network.TarotJsAlabeService
+import com.example.network.TarotInterpretationService
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -66,13 +66,12 @@ fun TarotReadingResultScreen(
         )
     }
 
-    // Synthesize chronological meaning sum up across all cards with Tarot.js & Alabe synthesis
     val synthesizedSummary = remember(cardsWithPositions) {
         val count = cardsWithPositions.size
         val elements = cardsWithPositions.map { it.second.first.element }.distinct()
         val uprightCount = cardsWithPositions.count { !it.second.second }
         val reversedCount = cardsWithPositions.count { it.second.second }
-        val spreadInsight = TarotJsAlabeService.getSpreadInterpretation(spreadType, cardsWithPositions.map { it.second.first.name })
+        val spreadInsight = TarotInterpretationService.getSpreadInterpretation(spreadType, cardsWithPositions.map { it.second.first.name })
         
         buildString {
             append("$spreadInsight\n\n")
@@ -282,9 +281,9 @@ fun TarotReadingResultScreen(
                                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f)
                             )
                             Spacer(modifier = Modifier.height(2.dp))
-                            val jsInsight = TarotJsAlabeService.getInsight(card.name)
+                            val jsInsight = TarotInterpretationService.getInsight(card.name)
                             Text(
-                                text = "Tarot.js & Alabe: ${jsInsight.alabeMeaning}",
+                                text = "Meaning: ${jsInsight.meaning}",
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.secondary,
                                 fontWeight = FontWeight.Medium
