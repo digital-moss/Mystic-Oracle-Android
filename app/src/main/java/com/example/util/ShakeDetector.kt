@@ -22,7 +22,6 @@ class ShakeDetector(
             sensorManager.registerListener(this, it, SensorManager.SENSOR_DELAY_UI)
         }
     }
-
     fun stop() {
         sensorManager.unregisterListener(this)
     }
@@ -58,4 +57,3 @@ class ShakeDetector(
 
     override fun onAccuracyChanged(sensor: Sensor?, accuracy: Int) {}
 }
-
