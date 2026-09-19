@@ -15,10 +15,10 @@ data class DonationOption(
 
 object DonationOptions {
     val all: List<DonationOption> = listOf(
-        DonationOption("Support website", "One page for cards and other payment methods", "www.handmeups.io"),
-        DonationOption("PayPal", "Send a contribution through PayPal", "paypalk.com/handmeupsonly"),
-        DonationOption("Cash App", "Send a contribution through Cash App", "http://cash.app/$maechle"),
-        DonationOption("Chime", "Send a contribution through Chime", "http://app.chime.com/link/qr?u=Maechle"),
-        DonationOption("Bitcoin / crypto", "Open the project's public crypto wallet page", "updater soon")
+        DonationOption("Support website", "One page for cards and other payment methods", "https://www.handmeups.io"),
+        DonationOption("PayPal", "Send a contribution through PayPal", "https://www.paypal.me/handmeupsonly"),
+        DonationOption("Cash App", "Send a contribution through Cash App", "https://cash.app/\$maechle"),
+        DonationOption("Chime", "Send a contribution through Chime", "https://app.chime.com/link/qr?u=Maechle"),
+        DonationOption("Bitcoin / crypto", "Open the project's public crypto wallet page", "")
     )
 }

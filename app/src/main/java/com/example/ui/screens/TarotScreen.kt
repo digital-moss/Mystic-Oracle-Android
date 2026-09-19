@@ -31,6 +31,8 @@ import com.example.model.TarotCard
 import com.example.model.TarotData
 import coil.compose.AsyncImage
 import com.example.network.TarotImageRepository
+import com.example.tarot.BundledTarotDecks
+import com.example.tarot.TarotDeck
 import java.io.File
 import java.io.FileOutputStream
 import java.util.zip.ZipInputStream
@@ -46,10 +48,23 @@ fun TarotScreen(
     var activeSpread by remember { mutableStateOf<List<Pair<String, Pair<TarotCard, Boolean>>>?>(null) }
     var spreadType by remember { mutableStateOf("Single Tarot Card Draw") }
     var selectedCardDetail by remember { mutableStateOf<TarotCard?>(null) }
+    var selectedCardImageModel by remember { mutableStateOf<Any?>(null) }
 
     // Custom decks state
     var importedDecksCount by remember { mutableStateOf(0) }
     var importStatusMessage by remember { mutableStateOf<String?>(null) }
+    var selectedDeck by remember { mutableStateOf(TarotDeck.RYDER_WAITE) }
+    var bundledEtherealDirectory by remember { mutableStateOf<File?>(null) }
+
+    LaunchedEffect(Unit) {
+        runCatching {
+            BundledTarotDecks.ensureEtherealVisionsExtracted(context)
+        }.onSuccess {
+            bundledEtherealDirectory = it
+        }.onFailure {
+            importStatusMessage = "Ethereal Visions could not be loaded: ${it.localizedMessage}"
+        }
+    }
 
     val zipPickerLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.OpenDocument()
@@ -57,6 +72,7 @@ fun TarotScreen(
         uri?.let {
             try {
                 val inputStream = context.contentResolver.openInputStream(uri)
+                    ?: error("Unable to open selected archive")
                 val zipInputStream = ZipInputStream(inputStream)
                 val decksDir = File(context.filesDir, "custom_decks")
                 if (!decksDir.exists()) decksDir.mkdirs()
@@ -67,8 +83,9 @@ fun TarotScreen(
                 var count = 0
                 var zipEntry = zipInputStream.nextEntry
                 while (zipEntry != null) {
-                    if (!zipEntry.isDirectory && (zipEntry.name.endsWith(".png", true) || zipEntry.name.endsWith(".jpg", true))) {
-                        val outFile = File(deckFolder, zipEntry.name.substringAfterLast('/'))
+                    val fileName = zipEntry.name.substringAfterLast('/')
+                    if (!zipEntry.isDirectory && (fileName.endsWith(".png", true) || fileName.endsWith(".jpg", true))) {
+                        val outFile = File(deckFolder, fileName)
                         FileOutputStream(outFile).use { fos ->
                             zipInputStream.copyTo(fos)
                         }
@@ -117,7 +134,11 @@ fun TarotScreen(
     if (selectedCardDetail != null) {
         TarotCardDetailScreen(
             card = selectedCardDetail!!,
-            onBack = { selectedCardDetail = null }
+            onBack = {
+                selectedCardDetail = null
+                selectedCardImageModel = null
+            },
+            imageModel = selectedCardImageModel
         )
         return
     }
@@ -127,7 +148,17 @@ fun TarotScreen(
             spreadType = spreadType,
             cardsWithPositions = activeSpread!!,
             onSaveReading = onSaveReading,
-            onSelectCard = { selectedCardDetail = it },
+            onSelectCard = {
+                selectedCardDetail = it
+                selectedCardImageModel = if (selectedDeck == TarotDeck.ETHEREAL_VISIONS) {
+                    BundledTarotDecks.imageFile(
+                        bundledEtherealDirectory,
+                        TarotData.cards.indexOf(it)
+                    )
+                } else {
+                    null
+                }
+            },
             onContinueDrawing = {
                 val nextCard = TarotData.cards.random()
                 val isRev = kotlin.random.Random.nextBoolean()
@@ -151,6 +182,38 @@ fun TarotScreen(
             style = MaterialTheme.typography.headlineMedium,
             fontWeight = FontWeight.Bold
         )
+
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+            shape = RoundedCornerShape(16.dp)
+        ) {
+            Column(
+                modifier = Modifier.padding(16.dp),
+                verticalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                Text(
+                    text = "Choose a deck",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold
+                )
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    TarotDeck.entries.forEach { deck ->
+                        FilterChip(
+                            selected = selectedDeck == deck,
+                            onClick = {
+                                if (deck == TarotDeck.ETHEREAL_VISIONS && bundledEtherealDirectory == null) {
+                                    importStatusMessage = "Ethereal Visions is still loading."
+                                } else {
+                                    selectedDeck = deck
+                                }
+                            },
+                            label = { Text(deck.displayName) }
+                        )
+                    }
+                }
+            }
+        }
 
         TabRow(selectedTabIndex = selectedTab) {
             Tab(
@@ -208,7 +271,7 @@ fun TarotScreen(
                                             color = androidx.compose.ui.graphics.Color.White
                                         )
                                         Text(
-                                            text = "Ryder-Waite Classic Deck & Spreads",
+                                            text = "${selectedDeck.displayName} Deck & Spreads",
                                             style = MaterialTheme.typography.bodyMedium,
                                             color = androidx.compose.ui.graphics.Color.White.copy(alpha = 0.9f)
                                         )
@@ -418,12 +481,12 @@ fun TarotScreen(
                                 verticalArrangement = Arrangement.spacedBy(12.dp)
                             ) {
                                 Text(
-                                    text = "Consult the Tarot (Ryder-Waite Deck)",
+                                    text = "Consult the Tarot (${selectedDeck.displayName} Deck)",
                                     style = MaterialTheme.typography.titleMedium,
                                     fontWeight = FontWeight.Bold
                                 )
                                 Text(
-                                    text = "Standard Ryder-Waite-Smith Classic Deck is pre-installed and available by default. Choose your spread to reveal cards with rich esoteric symbology, artwork, astrology, numerology, and elemental attributes.",
+                                    text = "The Rider-Waite deck is available by default, with Ethereal Visions included as a second deck. Choose your spread to reveal cards with rich esoteric symbology, artwork, astrology, numerology, and elemental attributes.",
                                     style = MaterialTheme.typography.bodyMedium
                                 )
                                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -503,10 +566,19 @@ fun TarotScreen(
                         verticalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
                         items(filteredCards) { card ->
+                            val cardIndex = TarotData.cards.indexOf(card)
+                            val imageModel = if (selectedDeck == TarotDeck.ETHEREAL_VISIONS) {
+                                BundledTarotDecks.imageFile(bundledEtherealDirectory, cardIndex)
+                            } else {
+                                TarotImageRepository.getCardImageUrl(card.name)
+                            }
                             Card(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .clickable { selectedCardDetail = card },
+                                    .clickable {
+                                        selectedCardDetail = card
+                                        selectedCardImageModel = imageModel
+                                    },
                                 colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
                                 shape = RoundedCornerShape(12.dp)
                             ) {
@@ -518,7 +590,7 @@ fun TarotScreen(
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
                                     AsyncImage(
-                                        model = TarotImageRepository.getCardImageUrl(card.name),
+                                        model = imageModel,
                                         contentDescription = card.name,
                                         modifier = Modifier
                                             .size(56.dp, 84.dp)
@@ -618,7 +690,11 @@ fun TarotScreen(
                                     fontWeight = FontWeight.Bold
                                 )
                                 Text(
-                                    text = if (importedDecksCount > 0) "Custom deck active. Card pulls will use your imported images." else "Default Major Arcana deck active. Import a .zip archive or custom card photos above to personalize your readings.",
+                                    text = if (importedDecksCount > 0) {
+                                        "$importedDecksCount imported custom deck(s) are available for future deck management."
+                                    } else {
+                                        "Rider-Waite and Ethereal Visions are bundled. Import a .zip archive to add another custom deck."
+                                    },
                                     style = MaterialTheme.typography.bodySmall,
                                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
                                 )

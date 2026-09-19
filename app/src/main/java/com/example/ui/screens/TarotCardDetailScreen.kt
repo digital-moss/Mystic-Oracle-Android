@@ -48,7 +48,8 @@ fun getCardImageRes(card: TarotCard): Int {
 @Composable
 fun TarotCardDetailScreen(
     card: TarotCard,
-    onBack: () -> Unit
+    onBack: () -> Unit,
+    imageModel: Any? = null
 ) {
     var symbologyTags by remember { mutableStateOf(card.symbology.toMutableList()) }
     var commonMeaningsTags by remember { mutableStateOf(card.defaultTerms.toMutableList()) }
@@ -102,7 +103,7 @@ fun TarotCardDetailScreen(
                             contentAlignment = Alignment.Center
                         ) {
                             AsyncImage(
-                                model = currentImageUrl,
+                                model = imageModel ?: currentImageUrl,
                                 contentDescription = card.name,
                                 modifier = Modifier.fillMaxSize(),
                                 contentScale = ContentScale.Crop,
