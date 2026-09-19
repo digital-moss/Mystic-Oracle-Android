@@ -188,7 +188,8 @@ fun IChingScreen(
         modifier = Modifier
             .fillMaxSize()
             .padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(14.dp)
+        verticalArrangement = Arrangement.spacedBy(14.dp),
+        horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Text(
             text = "I Ching (Book of Changes)",
@@ -196,7 +197,10 @@ fun IChingScreen(
             fontWeight = FontWeight.Bold
         )
 
-        TabRow(selectedTabIndex = selectedTab) {
+        TabRow(
+            selectedTabIndex = selectedTab,
+            modifier = Modifier.fillMaxWidth()
+        ) {
             Tab(
                 selected = selectedTab == 0,
                 onClick = { selectedTab = 0 },
@@ -493,14 +497,15 @@ fun IChingScreen(
                         ) {
                             Column(
                                 modifier = Modifier.padding(16.dp),
-                                verticalArrangement = Arrangement.spacedBy(10.dp)
+                                verticalArrangement = Arrangement.spacedBy(10.dp),
+                                horizontalAlignment = Alignment.CenterHorizontally
                             ) {
                                 Row(
                                     modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    horizontalArrangement = Arrangement.Center,
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
-                                    Column {
+                                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
                                         // Removed title
                                         Text(
                                             text = "Status: ${if (simpleDrawReversed) "Zōng Guà / Inverted (180°)" else "Upright Orientation"}",
@@ -508,17 +513,17 @@ fun IChingScreen(
                                             color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.8f)
                                         )
                                     }
+                                }
 
-                                    FilledTonalButton(
-                                        onClick = {
-                                            triggerHapticFeedback()
-                                            simpleDrawReversed = !simpleDrawReversed
-                                        }
-                                    ) {
-                                        Icon(Icons.Default.Sync, contentDescription = null, modifier = Modifier.size(16.dp))
-                                        Spacer(modifier = Modifier.width(6.dp))
-                                        Text(if (simpleDrawReversed) "Flip Upright" else "Flip Inverted")
+                                FilledTonalButton(
+                                    onClick = {
+                                        triggerHapticFeedback()
+                                        simpleDrawReversed = !simpleDrawReversed
                                     }
+                                ) {
+                                    Icon(Icons.Default.Sync, contentDescription = null, modifier = Modifier.size(16.dp))
+                                    Spacer(modifier = Modifier.width(6.dp))
+                                    Text(if (simpleDrawReversed) "Flip Upright" else "Flip Inverted")
                                 }
 
                                 if (simpleDrawReversed) {
