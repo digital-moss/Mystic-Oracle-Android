@@ -135,27 +135,6 @@ object DeckManager {
         }
     }
 
-    fun searchDecks(query: String, filterSource: String = "All"): List<TarotDeckPreset> {
-        val q = query.trim().lowercase()
-        return availableDecks.filter { deck ->
-            val matchesSource = when (filterSource.lowercase()) {
-                "all", "all decks" -> true
-                "github", "github repos" -> deck.source.contains("github", true) || deck.repoUrl?.contains("github", true) == true
-                "built-in", "historic", "historical", "classic" -> !deck.isCustom && !deck.source.contains("github", true)
-                "custom", "custom imported", "my custom decks" -> deck.isCustom
-                else -> true
-            }
-            val matchesQuery = q.isEmpty() ||
-                deck.name.lowercase().contains(q) ||
-                deck.description.lowercase().contains(q) ||
-                deck.source.lowercase().contains(q) ||
-                deck.author.lowercase().contains(q) ||
-                (deck.repoUrl?.lowercase()?.contains(q) == true) ||
-                (deck.websiteUrl?.lowercase()?.contains(q) == true)
-            matchesSource && matchesQuery
-        }
-    }
-
     fun importCustomDeck(
         name: String,
         description: String,

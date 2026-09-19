@@ -46,8 +46,6 @@ fun TarotDeckBrowserView(
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
-    var searchQuery by remember { mutableStateOf("") }
-    var selectedSourceFilter by remember { mutableStateOf("All") }
     var showImportDialog by remember { mutableStateOf(false) }
     var statusMessage by remember { mutableStateOf<String?>(null) }
 
@@ -100,13 +98,7 @@ fun TarotDeckBrowserView(
         }
     }
 
-    val sourceFilters = remember {
-        listOf("All", "GitHub Repos", "Historical", "My Custom")
-    }
-
-    val displayedDecks = remember(searchQuery, selectedSourceFilter, DeckManager.availableDecks) {
-        DeckManager.searchDecks(searchQuery, selectedSourceFilter)
-    }
+    val displayedDecks = DeckManager.availableDecks
 
     val activeDeck = DeckManager.availableDecks.find { it.id == DeckManager.currentDeckId }
         ?: DeckManager.builtInDecks.first()
@@ -117,73 +109,6 @@ fun TarotDeckBrowserView(
             .testTag("tarot_deck_browser_view"),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        // Top Search Bar
-        OutlinedTextField(
-            value = searchQuery,
-            onValueChange = { searchQuery = it },
-            placeholder = { Text("Search decks: GitHub, historic, custom...") },
-            leadingIcon = {
-                Icon(
-                    imageVector = Icons.Default.Search,
-                    contentDescription = "Search decks",
-                    tint = MaterialTheme.colorScheme.primary
-                )
-            },
-            trailingIcon = {
-                if (searchQuery.isNotEmpty()) {
-                    IconButton(
-                        onClick = { searchQuery = "" },
-                        modifier = Modifier.testTag("clear_deck_search_button")
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Close,
-                            contentDescription = "Clear deck search"
-                        )
-                    }
-                }
-            },
-            singleLine = true,
-            shape = RoundedCornerShape(16.dp),
-            colors = OutlinedTextFieldDefaults.colors(
-                focusedBorderColor = MaterialTheme.colorScheme.primary,
-                unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant,
-                focusedContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
-                unfocusedContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
-            ),
-            modifier = Modifier
-                .fillMaxWidth()
-                .testTag("deck_search_bar")
-        )
-
-        // Source Filter Chips Row
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .horizontalScroll(rememberScrollState()),
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            sourceFilters.forEach { filter ->
-                val isSelected = selectedSourceFilter.equals(filter, ignoreCase = true)
-                val icon = when (filter) {
-                    "GitHub Repos" -> "🐙"
-                    "Historical" -> "🏛️"
-                    "My Custom" -> "📂"
-                    else -> "✨"
-                }
-
-                FilterChip(
-                    selected = isSelected,
-                    onClick = {
-                        selectedSourceFilter = if (isSelected && filter != "All") "All" else filter
-                    },
-                    label = { Text("$icon $filter") },
-                    shape = RoundedCornerShape(12.dp),
-                    modifier = Modifier.testTag("filter_deck_source_${filter.replace(" ", "_").lowercase()}")
-                )
-            }
-        }
-
         // Active Deck Banner
         Card(
             modifier = Modifier.fillMaxWidth(),

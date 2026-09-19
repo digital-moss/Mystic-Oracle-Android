@@ -87,8 +87,6 @@ fun SettingsScreen(
     var importStatus by remember { mutableStateOf("") }
     var fontImportStatus by remember { mutableStateOf<String?>(null) }
     var deckZipStatus by remember { mutableStateOf<String?>(null) }
-    var deckSearchQuery by remember { mutableStateOf("") }
-    var deckSourceFilter by remember { mutableStateOf("All") }
     var donationStatus by remember { mutableStateOf("") }
     var driveSyncStatus by remember { mutableStateOf(DeckManager.syncStatusMessage) }
 
@@ -783,48 +781,8 @@ fun SettingsScreen(
                         }
                     }
 
-                    // Search input
-                    OutlinedTextField(
-                        value = deckSearchQuery,
-                        onValueChange = { deckSearchQuery = it },
-                        placeholder = { Text("Filter decks (GitHub, built-in...)") },
-                        leadingIcon = { Icon(Icons.Default.Search, contentDescription = null, modifier = Modifier.size(18.dp)) },
-                        trailingIcon = {
-                            if (deckSearchQuery.isNotEmpty()) {
-                                IconButton(onClick = { deckSearchQuery = "" }) {
-                                    Icon(Icons.Default.Close, contentDescription = "Clear", modifier = Modifier.size(16.dp))
-                                }
-                            }
-                        },
-                        singleLine = true,
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(12.dp)
-                    )
-
-                    // Source Filter Chips
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .horizontalScroll(rememberScrollState()),
-                        horizontalArrangement = Arrangement.spacedBy(6.dp)
-                    ) {
-                        listOf("All", "GitHub", "Built-in", "Custom").forEach { filter ->
-                            val isSelected = deckSourceFilter.equals(filter, ignoreCase = true)
-                            FilterChip(
-                                selected = isSelected,
-                                onClick = { deckSourceFilter = if (isSelected && filter != "All") "All" else filter },
-                                label = { Text(filter, fontSize = 11.sp) },
-                                shape = RoundedCornerShape(10.dp)
-                            )
-                        }
-                    }
-
-                    val filteredDecks = remember(deckSearchQuery, deckSourceFilter, DeckManager.availableDecks) {
-                        DeckManager.searchDecks(deckSearchQuery, deckSourceFilter)
-                    }
-
                     Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                        filteredDecks.forEach { deck ->
+                        DeckManager.availableDecks.forEach { deck ->
                             val isSelected = DeckManager.currentDeckId == deck.id
                             Row(
                                 modifier = Modifier
