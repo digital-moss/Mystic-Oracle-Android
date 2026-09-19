@@ -22,39 +22,23 @@ data class TarotDeckPreset(
 )
 
 object DeckManager {
-    val builtInDecks = listOf(
+    var builtInDecks by mutableStateOf(listOf(
         TarotDeckPreset(
-            id = "rider_waite",
+            id = "rider_waite_tarot",
             name = "Rider-Waite-Smith",
             description = "The verified 78-card Rider-Waite-Smith deck bundled with the app.",
-            sampleImageUrl = "https://raw.githubusercontent.com/searge/tarot/master/assets/img/big/maj00.jpg",
+            sampleImageUrl = "file:///android_asset/rider_waite_tarot/major_00_Fool.jpg",
             source = "Bundled asset",
             author = "Pamela Colman Smith & A.E. Waite"
-        ),
-        TarotDeckPreset(
-            id = "ethereal_tarot",
-            name = "Ethereal Visions",
-            description = "The 79-card Ethereal Visions deck bundled with the app.",
-            sampleImageUrl = "file:///android_asset/ethereal_visions_tarot/0.jpg",
-            source = "Bundled asset",
-            author = "Matt Hughes"
-        ),
-        TarotDeckPreset(
-            id = "hermetic_tarot",
-            name = "Hermetic Tarot",
-            description = "The 79-card Hermetic Tarot deck with its original card back.",
-            sampleImageUrl = "file:///android_asset/decks/hermetic-tarot.zip",
-            source = "Bundled asset",
-            author = "Godfrey Dowson"
         )
-    )
+    ))
 
     var customDecks by mutableStateOf<List<TarotDeckPreset>>(emptyList())
 
     val availableDecks: List<TarotDeckPreset>
         get() = builtInDecks + customDecks
 
-    var currentDeckId by mutableStateOf("rider_waite")
+    var currentDeckId by mutableStateOf("rider_waite_tarot")
 
     // Reversal settings
     var noReversals by mutableStateOf(false)
@@ -90,8 +74,33 @@ object DeckManager {
     var syncStatusMessage by mutableStateOf("Ready to sync")
 
     fun initPreferences(context: Context) {
+        val discoveredDecks = BundledTarotDecks.discover(context).map { deck ->
+            TarotDeckPreset(
+                id = deck.id,
+                name = deck.id.removeSuffix("_tarot").split('_').joinToString(" ") { word ->
+                    word.replaceFirstChar { it.uppercase() }
+                },
+                description = "${deck.imageCount}-image deck bundled with the app.",
+                sampleImageUrl = "file:///android_asset/${deck.assetFolder}/${firstAssetImage(context, deck.assetFolder)}",
+                source = "Bundled asset",
+                cardCount = deck.imageCount.coerceAtMost(78)
+            )
+        }
+        builtInDecks = discoveredDecks + TarotDeckPreset(
+            id = "hermetic_tarot",
+            name = "Hermetic Tarot",
+            description = "The Hermetic Tarot deck bundled with its original card back.",
+            sampleImageUrl = "file:///android_asset/decks/hermetic-tarot.zip",
+            source = "Bundled asset",
+            author = "Godfrey Dowson"
+        )
         val prefs = context.getSharedPreferences("mystic_oracle_prefs", Context.MODE_PRIVATE)
-        currentDeckId = prefs.getString("currentDeckId", "rider_waite") ?: "rider_waite"
+        val savedDeckId = prefs.getString("currentDeckId", "rider_waite_tarot") ?: "rider_waite_tarot"
+        currentDeckId = when (savedDeckId) {
+            "rider_waite" -> "rider_waite_tarot"
+            "ethereal_tarot" -> "ethereal_visions_tarot"
+            else -> savedDeckId
+        }.takeIf { id -> availableDecks.any { it.id == id } } ?: builtInDecks.first().id
         tarotBackArtUrl = BundledTarotDecks.backImageFile(context, currentDeckId)?.toURI()?.toString() ?: run {
             "https://upload.wikimedia.org/wikipedia/commons/thumb/c/cd/Rider_Waite_Tarot_Deck_Back.jpg/360px-Rider_Waite_Tarot_Deck_Back.jpg"
         }
@@ -120,6 +129,12 @@ object DeckManager {
 
         // Load custom imported decks
         loadCustomDecks(context)
+    }
+
+    private fun firstAssetImage(context: Context, folder: String): String {
+        return (context.assets.list(folder) ?: emptyArray())
+            .firstOrNull { it.endsWith(".jpg", true) || it.endsWith(".jpeg", true) || it.endsWith(".png", true) }
+            ?: "0.jpg"
     }
 
     fun selectDeck(deckId: String, context: Context? = null) {
@@ -165,7 +180,7 @@ object DeckManager {
     fun deleteCustomDeck(id: String, context: Context) {
         customDecks = customDecks.filter { it.id != id }
         if (currentDeckId == id) {
-            currentDeckId = "rider_waite"
+            currentDeckId = builtInDecks.firstOrNull()?.id ?: "rider_waite_tarot"
         }
         savePreferences(context)
         saveCustomDecks(context)

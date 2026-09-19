@@ -77,9 +77,10 @@ object TarotImageRepository {
             }
         } catch (_: Exception) {}
 
-        listOf("rider_waite", "ethereal_tarot", "hermetic_tarot").forEach { deckId ->
-            BundledTarotDecks.ensureDeckExtracted(context, deckId)
-        }
+        BundledTarotDecks.discover(context)
+            .map { it.id }
+            .plus("hermetic_tarot")
+            .forEach { deckId -> BundledTarotDecks.ensureDeckExtracted(context, deckId) }
     }
 
     fun getCardPlaceholderRes(cardName: String): Int {

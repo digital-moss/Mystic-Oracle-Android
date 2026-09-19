@@ -6,14 +6,26 @@ import java.util.zip.ZipInputStream
 import com.example.model.TarotCard
 import com.example.model.TarotData
 
-enum class TarotDeck(val displayName: String) {
-    RYDER_WAITE("Rider-Waite"),
-    ETHEREAL_VISIONS("Ethereal Visions")
-}
+data class BundledDeck(
+    val id: String,
+    val assetFolder: String,
+    val imageCount: Int
+)
 
 object BundledTarotDecks {
     private const val assetPath = "decks/ethereal-visions.zip"
     private const val hermeticAssetPath = "decks/hermetic-tarot.zip"
+
+    fun discover(context: Context): List<BundledDeck> {
+        return (context.assets.list("") ?: emptyArray())
+            .filter { it.endsWith("_tarot", ignoreCase = true) }
+            .mapNotNull { folder ->
+                val imageCount = (context.assets.list(folder) ?: emptyArray())
+                    .count { it.endsWith(".jpg", true) || it.endsWith(".jpeg", true) || it.endsWith(".png", true) }
+                if (imageCount > 0) BundledDeck(folder, folder, imageCount) else null
+            }
+            .sortedBy { it.id }
+    }
 
     fun ensureEtherealVisionsExtracted(context: Context): File {
         val deckDirectory = File(context.filesDir, "bundled_decks/ethereal_visions")
@@ -52,12 +64,17 @@ object BundledTarotDecks {
     fun cardImageFile(context: Context, deckId: String, card: TarotCard): File? {
         val directory = ensureDeckExtracted(context, deckId) ?: return null
         val index = TarotData.cards.indexOf(card)
-        val fileName = when (deckId) {
-            "rider_waite" -> riderWaiteFileName(card.name)
-            "ethereal_tarot", "hermetic_tarot" -> "$index.jpg"
-            else -> null
-        } ?: return null
-        return File(directory, fileName).takeIf { it.exists() }
+        val files = directory.listFiles { file ->
+            file.extension.equals("jpg", true) || file.extension.equals("jpeg", true) || file.extension.equals("png", true)
+        }?.toList().orEmpty()
+        val numericFile = files.firstOrNull { it.nameWithoutExtension.toIntOrNull() == index }
+        val fileName = numericFile ?: files.firstOrNull {
+            it.nameWithoutExtension.replace(Regex("[^A-Za-z0-9]"), "")
+                .contains(card.name.replace(Regex("[^A-Za-z0-9]"), ""), true)
+        } ?: riderWaiteFileName(card.name)?.let { expectedName ->
+            files.firstOrNull { it.name.equals(expectedName, true) }
+        }
+        return fileName?.takeIf { it.exists() }
     }
 
     fun backImageFile(context: Context, deckId: String): File? {
@@ -66,30 +83,33 @@ object BundledTarotDecks {
     }
 
     fun ensureDeckExtracted(context: Context, deckId: String): File? {
-        val (assetFolder, assetZip, directory) = when (deckId) {
-            "rider_waite" -> Triple("rider_waite_tarot", null, File(context.filesDir, "bundled_decks/rider_waite"))
-            "ethereal_tarot" -> Triple("ethereal_visions_tarot", null, File(context.filesDir, "bundled_decks/ethereal_visions"))
-            "hermetic_tarot" -> Triple(null, hermeticAssetPath, File(context.filesDir, "bundled_decks/hermetic_tarot"))
+        val assetFolder = resolveAssetFolder(deckId)
+        val (folder, assetZip) = when {
+            assetFolder != null -> assetFolder to null
+            deckId == "hermetic_tarot" -> null to hermeticAssetPath
             else -> return null
         }
+        val directory = File(context.filesDir, "bundled_decks/$deckId")
+        val sourceFolder = folder
+        val sourceZip = assetZip
         val marker = File(directory, ".complete")
         if (marker.exists()) return directory
 
         directory.deleteRecursively()
         directory.mkdirs()
-        if (assetFolder != null) {
-            (context.assets.list(assetFolder) ?: emptyArray()).forEach { fileName ->
-                context.assets.open("$assetFolder/$fileName").use { input ->
+        if (sourceFolder != null) {
+            (context.assets.list(sourceFolder) ?: emptyArray()).forEach { fileName ->
+                context.assets.open("$sourceFolder/$fileName").use { input ->
                     File(directory, fileName).outputStream().use { output -> input.copyTo(output) }
                 }
             }
-        } else if (assetZip != null) {
-            context.assets.open(assetZip).use { assetStream ->
+        } else if (sourceZip != null) {
+            context.assets.open(sourceZip).use { assetStream ->
                 ZipInputStream(assetStream).use { zip ->
                     var entry = zip.nextEntry
                     while (entry != null) {
                         val fileName = entry.name.substringAfterLast('/')
-                        if (!entry.isDirectory && fileName.matches(Regex("(back|\\d+)\\.jpg"))) {
+                        if (!entry.isDirectory && fileName.matches(Regex("(back|\\d+)\\.(jpg|jpeg|png)"))) {
                             File(directory, fileName).outputStream().use { output -> zip.copyTo(output) }
                         }
                         zip.closeEntry()
@@ -98,11 +118,24 @@ object BundledTarotDecks {
                 }
             }
         }
-        check((directory.listFiles { file -> file.extension.equals("jpg", true) }?.size ?: 0) >= 78) {
+        check((directory.listFiles { file ->
+            file.extension.equals("jpg", true) ||
+                file.extension.equals("jpeg", true) ||
+                file.extension.equals("png", true)
+        }?.size ?: 0) >= 78) {
             "Deck $deckId is missing card images"
         }
         marker.createNewFile()
         return directory
+    }
+
+    private fun resolveAssetFolder(deckId: String): String? {
+        return when (deckId) {
+            "rider_waite" -> "rider_waite_tarot"
+            "ethereal_tarot" -> "ethereal_visions_tarot"
+            "hermetic_tarot" -> null
+            else -> deckId.takeIf { it.endsWith("_tarot", true) }
+        }
     }
 
     private fun riderWaiteFileName(cardName: String): String? {
