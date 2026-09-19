@@ -46,6 +46,8 @@ import java.io.FileOutputStream
 import java.util.zip.ZipInputStream
 import java.util.zip.ZipOutputStream
 import java.util.zip.ZipEntry
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -64,6 +66,8 @@ fun TarotScreen(
     var simpleDrawCard by remember { mutableStateOf(TarotData.cards.random()) }
     var simpleDrawFlipped by remember { mutableStateOf(false) }
     var simpleDrawReversed by remember { mutableStateOf(false) }
+    var reshuffleInProgress by remember { mutableStateOf(false) }
+    val reshuffleScope = rememberCoroutineScope()
 
     // Custom decks state
     var importedDecksCount by remember { mutableStateOf(0) }
@@ -73,16 +77,29 @@ fun TarotScreen(
         HapticUtil.performHaptic(context)
     }
 
+    val reshuffle = rememberUpdatedState {
+        if (!reshuffleInProgress) {
+            reshuffleScope.launch {
+                reshuffleInProgress = true
+                triggerHapticFeedback()
+                if (simpleDrawFlipped) {
+                    simpleDrawFlipped = false
+                    delay(500)
+                }
+                simpleDrawCard = TarotData.cards.random()
+                simpleDrawReversed = if (DeckManager.noReversals) false else kotlin.random.Random.nextBoolean()
+                reshuffleInProgress = false
+            }
+        }
+    }
+
     // Shake to reshuffle for Simple Draw & Readings
     DisposableEffect(DeckManager.shakeToShuffleEnabled) {
         if (!DeckManager.shakeToShuffleEnabled) {
             return@DisposableEffect onDispose {}
         }
         val detector = ShakeDetector(context) {
-            triggerHapticFeedback()
-            simpleDrawCard = TarotData.cards.random()
-            simpleDrawFlipped = false
-            simpleDrawReversed = if (DeckManager.noReversals) false else kotlin.random.Random.nextBoolean()
+            reshuffle.value()
         }
         detector.start()
         onDispose {
@@ -426,12 +443,8 @@ fun TarotScreen(
                             }
 
                             Button(
-                                onClick = {
-                                    triggerHapticFeedback()
-                                    simpleDrawCard = TarotData.cards.random()
-                                    simpleDrawFlipped = false
-                                    simpleDrawReversed = if (DeckManager.noReversals) false else kotlin.random.Random.nextBoolean()
-                                },
+                                onClick = { reshuffle.value() },
+                                enabled = !reshuffleInProgress,
                                 colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
                                 contentPadding = PaddingValues(horizontal = 14.dp, vertical = 8.dp)
                             ) {
