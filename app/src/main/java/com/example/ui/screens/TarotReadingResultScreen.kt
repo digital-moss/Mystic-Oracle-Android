@@ -63,6 +63,7 @@ fun TarotReadingResultScreen(
                     )
                 }
             }
+
         )
     }
 
@@ -209,7 +210,21 @@ fun TarotReadingResultScreen(
 
             item {
                 Text(
-                    text = "Drawn Cards (Chronological Order)",
+                    text = "Spread Layout",
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.padding(top = 8.dp)
+                )
+                SpreadLayout(
+                    spreadType = spreadType,
+                    cardsWithPositions = cardsWithPositions,
+                    onCardClick = { card -> fullCardDialogCard = card }
+                )
+            }
+
+            item {
+                Text(
+                    text = "Card Details",
                     style = MaterialTheme.typography.titleSmall,
                     fontWeight = FontWeight.Bold,
                     modifier = Modifier.padding(top = 8.dp)

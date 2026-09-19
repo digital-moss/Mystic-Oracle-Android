@@ -674,6 +674,68 @@ fun TarotScreen(
                                     }
                                 }
 
+                                Text(
+                                    text = "Common Spreads",
+                                    style = MaterialTheme.typography.labelLarge,
+                                    color = MaterialTheme.colorScheme.primary,
+                                    fontWeight = FontWeight.Bold
+                                )
+
+                                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                    Button(
+                                        onClick = {
+                                            spreadType = "Five-Card Cross Spread"
+                                            val cards = TarotData.cards.shuffled().take(5)
+                                            val labels = listOf(
+                                                "1. Situation", "2. Challenge", "3. Foundation",
+                                                "4. Past Influence", "5. Potential Outcome"
+                                            )
+                                            activeSpread = cards.indices.map { i ->
+                                                labels[i] to (cards[i] to (if (DeckManager.noReversals) false else kotlin.random.Random.nextBoolean()))
+                                            }
+                                        },
+                                        modifier = Modifier.weight(1f)
+                                    ) {
+                                        Text("5-Card Cross")
+                                    }
+                                    Button(
+                                        onClick = {
+                                            spreadType = "Relationship Spread (5 Cards)"
+                                            val cards = TarotData.cards.shuffled().take(5)
+                                            val labels = listOf(
+                                                "1. Your Energy", "2. Their Energy", "3. The Connection",
+                                                "4. The Challenge", "5. Guidance"
+                                            )
+                                            activeSpread = cards.indices.map { i ->
+                                                labels[i] to (cards[i] to (if (DeckManager.noReversals) false else kotlin.random.Random.nextBoolean()))
+                                            }
+                                        },
+                                        modifier = Modifier.weight(1f),
+                                        colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.secondary)
+                                    ) {
+                                        Text("Relationship")
+                                    }
+                                }
+
+                                Button(
+                                    onClick = {
+                                        spreadType = "Horseshoe Spread (7 Cards)"
+                                        val cards = TarotData.cards.shuffled().take(7)
+                                        val labels = listOf(
+                                            "1. Past", "2. Present", "3. Hidden Influence",
+                                            "4. Advice", "5. External Influence", "6. Hopes & Fears",
+                                            "7. Outcome"
+                                        )
+                                        activeSpread = cards.indices.map { i ->
+                                            labels[i] to (cards[i] to (if (DeckManager.noReversals) false else kotlin.random.Random.nextBoolean()))
+                                        }
+                                    },
+                                    modifier = Modifier.fillMaxWidth(),
+                                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.tertiary)
+                                ) {
+                                    Text("Horseshoe Spread (7 Cards)")
+                                }
+
                                 Button(
                                     onClick = {
                                         spreadType = "Celtic Cross Spread (10 Cards)"
