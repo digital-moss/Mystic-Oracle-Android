@@ -6,6 +6,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import com.example.tarot.BundledTarotDecks
 
 data class TarotDeckPreset(
     val id: String,
@@ -29,6 +30,14 @@ object DeckManager {
             sampleImageUrl = "https://raw.githubusercontent.com/searge/tarot/master/assets/img/big/maj00.jpg",
             source = "www.alabe.com & GitHub searge/tarot",
             author = "Pamela Colman Smith & A.E. Waite"
+        ),
+        TarotDeckPreset(
+            id = "hermetic_tarot",
+            name = "Hermetic Tarot",
+            description = "The 79-card Hermetic Tarot deck with its original card back.",
+            sampleImageUrl = "file:///android_asset/decks/hermetic-tarot.zip",
+            source = "Bundled asset",
+            author = "Godfrey Dowson"
         )
     )
 
@@ -75,6 +84,14 @@ object DeckManager {
     fun initPreferences(context: Context) {
         val prefs = context.getSharedPreferences("mystic_oracle_prefs", Context.MODE_PRIVATE)
         currentDeckId = prefs.getString("currentDeckId", "rider_waite") ?: "rider_waite"
+        tarotBackArtUrl = if (currentDeckId == "hermetic_tarot") {
+            BundledTarotDecks.ensureHermeticTarotExtracted(context)
+                .resolve("back.jpg")
+                .toURI()
+                .toString()
+        } else {
+            "https://upload.wikimedia.org/wikipedia/commons/thumb/c/cd/Rider_Waite_Tarot_Deck_Back.jpg/360px-Rider_Waite_Tarot_Deck_Back.jpg"
+        }
         noReversals = prefs.getBoolean("noReversals", false)
         shakeToShuffleEnabled = prefs.getBoolean("shakeToShuffleEnabled", true)
         shakeSensitivity = prefs.getString("shakeSensitivity", "Medium") ?: "Medium"
@@ -104,6 +121,14 @@ object DeckManager {
 
     fun selectDeck(deckId: String, context: Context? = null) {
         currentDeckId = deckId
+        tarotBackArtUrl = if (deckId == "hermetic_tarot" && context != null) {
+            BundledTarotDecks.ensureHermeticTarotExtracted(context)
+                .resolve("back.jpg")
+                .toURI()
+                .toString()
+        } else {
+            "https://upload.wikimedia.org/wikipedia/commons/thumb/c/cd/Rider_Waite_Tarot_Deck_Back.jpg/360px-Rider_Waite_Tarot_Deck_Back.jpg"
+        }
         context?.let { ctx ->
             savePreferences(ctx)
             if (hapticsEnabled) {

@@ -11,6 +11,7 @@ enum class TarotDeck(val displayName: String) {
 
 object BundledTarotDecks {
     private const val assetPath = "decks/ethereal-visions.zip"
+    private const val hermeticAssetPath = "decks/hermetic-tarot.zip"
 
     fun ensureEtherealVisionsExtracted(context: Context): File {
         val deckDirectory = File(context.filesDir, "bundled_decks/ethereal_visions")
@@ -44,5 +45,32 @@ object BundledTarotDecks {
         if (deckDirectory == null || cardIndex !in 0..78) return null
         val image = File(deckDirectory, "$cardIndex.jpg")
         return image.takeIf { it.exists() }
+    }
+
+    fun ensureHermeticTarotExtracted(context: Context): File {
+        val deckDirectory = File(context.filesDir, "bundled_decks/hermetic_tarot")
+        val marker = File(deckDirectory, ".complete")
+        if (marker.exists()) return deckDirectory
+
+        deckDirectory.deleteRecursively()
+        deckDirectory.mkdirs()
+        context.assets.open(hermeticAssetPath).use { assetStream ->
+            ZipInputStream(assetStream).use { zip ->
+                var entry = zip.nextEntry
+                while (entry != null) {
+                    val fileName = entry.name.substringAfterLast('/')
+                    if (!entry.isDirectory && fileName.matches(Regex("(back|\\d+)\\.jpg"))) {
+                        File(deckDirectory, fileName).outputStream().use { output -> zip.copyTo(output) }
+                    }
+                    zip.closeEntry()
+                    entry = zip.nextEntry
+                }
+            }
+        }
+
+        val imageCount = deckDirectory.listFiles { file -> file.extension.equals("jpg", true) }?.size ?: 0
+        check(imageCount == 80) { "Hermetic Tarot deck is incomplete: expected 80 images, found $imageCount" }
+        marker.createNewFile()
+        return deckDirectory
     }
 }
