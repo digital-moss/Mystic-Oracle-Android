@@ -19,6 +19,6 @@ object DonationOptions {
         DonationOption("PayPal", "Send a contribution through PayPal", "https://www.paypal.me/handmeupsonly"),
         DonationOption("Cash App", "Send a contribution through Cash App", "https://cash.app/\$maechle"),
         DonationOption("Chime", "Send a contribution through Chime", "https://app.chime.com/link/qr?u=Maechle"),
-        DonationOption("Bitcoin / crypto", "Open the project's public crypto wallet page", "")
+        DonationOption("Bitcoin", "Open the project's public crypto wallet page", "bitcoin:bc1q5wkxyfr7qpva9n3t9wdxxqtakj0n84mfsmazx7")
     )
 }
